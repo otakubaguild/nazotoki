@@ -35,6 +35,7 @@ label{display:block;margin-top:14px;color:var(--gold);font-size:14px}
 .img-message{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);max-width:92%;background:rgba(8,8,7,.94);border:1px solid var(--gold);color:var(--text);padding:10px 14px;border-radius:10px;font-size:14px;text-align:center;z-index:6;box-shadow:0 8px 20px rgba(0,0,0,.55);pointer-events:none}
 .img-message.error{border-color:var(--danger);color:#ffd0d0}
 .img-message.ok{border-color:var(--ok);color:#d7ffd7}
+.admin-tools button.selected{background:var(--gold);color:#1a1409;font-weight:800}
 .img-wrap{position:relative;margin:12px 0}
 .hotspot{position:absolute;border:2px solid rgba(213,173,98,.0);background:rgba(213,173,98,.0);border-radius:50%;transform:translate(-50%,-50%);min-width:36px;min-height:36px}
 .hotspot.debug{border-color:rgba(213,173,98,.8);background:rgba(213,173,98,.18)}
@@ -110,6 +111,30 @@ pre.export{white-space:pre-wrap;word-break:break-word;background:#050505;border:
 
 <section class="card hidden" id="certificate">
 <div class="cert"><div class="big">認証済</div><p>限定メニュー解放</p><hr><p>合言葉</p><div class="codeword" id="certCodeword"></div><p class="small">認証番号</p><div id="certNo" class="small"></div></div>
+<div id="surveyBlock" class="admin-stage">
+  <h4 style="margin-top:0">アンケートにご協力ください</h4>
+  <div id="surveyQuestions">
+  <div class="small" style="color:var(--muted)">楽しさ</div>
+  <div class="admin-tools">
+    <button type="button" class="secondary" id="sv_fun_bad" onclick="pickSurvey('fun','bad')">つまらない</button>
+    <button type="button" class="secondary" id="sv_fun_mid" onclick="pickSurvey('fun','mid')">ふつう</button>
+    <button type="button" class="secondary" id="sv_fun_good" onclick="pickSurvey('fun','good')">たのしい</button>
+  </div>
+  <div class="small" style="color:var(--muted);margin-top:14px">難易度</div>
+  <div class="admin-tools">
+    <button type="button" class="secondary" id="sv_diff_easy" onclick="pickSurvey('difficulty','easy')">かんたん</button>
+    <button type="button" class="secondary" id="sv_diff_mid" onclick="pickSurvey('difficulty','mid')">ふつう</button>
+    <button type="button" class="secondary" id="sv_diff_hard" onclick="pickSurvey('difficulty','hard')">むずかしい</button>
+  </div>
+  <div class="small" style="color:var(--muted);margin-top:14px">次回も参加しますか？</div>
+  <div class="admin-tools">
+    <button type="button" class="secondary" id="sv_again_yes" onclick="pickSurvey('again','yes')">する</button>
+    <button type="button" class="secondary" id="sv_again_no" onclick="pickSurvey('again','no')">しない</button>
+  </div>
+  <button id="surveySubmitBtn" class="hidden" onclick="submitSurvey()" style="margin-top:16px">アンケートを送信する</button>
+  </div>
+  <div id="surveyThanks" class="notice hidden" style="margin-top:12px">ご協力ありがとうございました！</div>
+</div>
 <button onclick="location.reload()">最初に戻る</button>
 </section>
 
@@ -121,6 +146,10 @@ pre.export{white-space:pre-wrap;word-break:break-word;background:#050505;border:
 <label>制限時間（分）</label><input id="adminMinutes" type="number" min="1"><label>合言葉</label><input id="adminCodeword"><label>管理画面パスワード</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="管理画面を開く時のパスワード"><div class="notice small">管理・編集を開くたびに、このパスワード入力が必要になります。初期パスワードは OTAKU です。</div>
 <label>解読後の機密文書（合言葉は {{codeword}}）</label><textarea id="adminPlainDoc"></textarea>
 <label>画像同期スクリプトURL（Google Apps Script）</label><input id="assetSyncUrl" placeholder="https://script.google.com/macros/s/.../exec">
+<label>アンケート送信先Discord Webhook URL（任意）</label><input id="surveyWebhookUrl" placeholder="https://discord.com/api/webhooks/...">
+<div class="admin-tools"><button class="secondary" onclick="loadSurveyStats()">アンケート集計を見る</button></div>
+<div id="surveyStatsBox" class="notice small hidden"></div>
+<div class="notice small">クリア後のアンケート結果をDiscordに通知したい場合はここにWebhook URLを入れてください。空欄なら送信せず画面上に「ありがとうございました」とだけ表示します。</div>
 <div class="notice small">ここにGASのWebアプリURLを入れると、画像やBGM/SE以外の全設定（タイトル・問題文・答え・ヒント・タップ地点など）をDriveへ送信し、他端末でも同じ内容を読み込めます。BGMとSEの設定は端末ごとに個別のままです。<br>画像は、GitHubリポジトリの「images」フォルダにPNG/JPGを直接アップロードして、各画像欄の「GitHubにアップロード済みの画像を使う」欄にファイル名（例: images/saigai.png）を入力する方法でも指定できます。この方法なら、Drive同期をしなくてもどの端末・どの購入者のサイトでも同じ画像がそのまま表示されます。</div>
 <label><input id="autoUploadImages" type="checkbox"> 画像追加時にDriveへアップロードする</label>
 <label><input id="autoUploadSettings" type="checkbox"> 「保存する」を押した時に設定もDriveへアップロードする</label>
@@ -171,19 +200,28 @@ const DEFAULT_DATA={
 title:"ギルドの密書",minutes:60,codeword:"おたく場",adminPassword:"OTAKU",
 intro:"ギルド宛に、差出人不明の機密文書が届きました。\n4つの試練を突破し、最後の合言葉を解読してください。",
 plainDoc:"━━━━━━━━━━━━━━\n\nギルド宛 機密文書\n\nこの文書を解読した者は、\nギルドの試練を突破した者と認める。\n\n合言葉\n\n『{{codeword}}』\n\nこの画面を\nギルドマスターへ提示せよ。\n\n━━━━━━━━━━━━━━",
-assetSyncUrl:DEFAULT_ASSET_SYNC_URL,autoUploadImages:false,autoUploadSettings:false,docImages:{"0":"","25":"","50":"","75":"","100":""},bgmTracks:[],seTracks:[],eventSe:{tap:"builtin_se_01",correct:"builtin_se_04",wrong:"builtin_se_03",analysis:"builtin_se_13",clear:"builtin_se_12"},
+assetSyncUrl:DEFAULT_ASSET_SYNC_URL,surveyWebhookUrl:"",autoUploadImages:false,autoUploadSettings:false,docImages:{},bgmTracks:[],seTracks:[],eventSe:{tap:"builtin_se_01",correct:"builtin_se_04",wrong:"builtin_se_03",analysis:"builtin_se_13",clear:"builtin_se_12"},
 puzzles:[samplePuzzle(1),samplePuzzle(2),samplePuzzle(3),samplePuzzle(4)]
 };
 function samplePuzzle(n){return{title:["第1問 はじめての依頼","第2問 解散したパーティーの伝言","第3問 紛れ込んだ偽物","第4問 最深部の扉"][n-1]||`第${n}問`,difficulty:["かんたん","ふつう","むずい","めちゃむず"][Math.min(n-1,3)],body:"問題文をここに入力。\n画像タップで切り替えたい場合は、画像とタップ地点を管理画面で設定。",image:"",answers:["答え"],hints:["見る場所を変えてみよう。"],clearTitle:`第${n}封印解除`,clearText:"機密文書の解析が進行しました。",wrongTapMessage:"違うようだ…",bgmId:"",hotspots:[]}}
 let data=loadData(),current=0,hintCount=0,imgIndex=0,timerId=null,totalTime=data.minutes*60,left=totalTime,certNo="",playlist=[];
 const REMOTE_IMAGES={};
 function loadData(){try{let raw=localStorage.getItem(STORAGE_KEY);if(raw)return migrateData(JSON.parse(raw))}catch(e){}return migrateData(JSON.parse(JSON.stringify(DEFAULT_DATA)))}
+function migrateDocImages_(docImages,puzzleCount){
+  docImages=docImages||{};
+  const looksLegacyPercent=("25" in docImages)||("50" in docImages)||("75" in docImages);
+  if(looksLegacyPercent){
+    return {"0":docImages["0"]||"","1":docImages["25"]||"","2":docImages["50"]||"","3":docImages["75"]||""};
+  }
+  return docImages;
+}
 function migrateData(obj){
   obj.adminPassword=obj.adminPassword||"OTAKU";
   obj.assetSyncUrl=(obj.assetSyncUrl&&obj.assetSyncUrl.trim()&&!LEGACY_WRONG_ASSET_SYNC_URLS.includes(obj.assetSyncUrl.trim()))?obj.assetSyncUrl.trim():DEFAULT_ASSET_SYNC_URL;
+  obj.surveyWebhookUrl=obj.surveyWebhookUrl||"";
   obj.autoUploadImages=!!obj.autoUploadImages;
   obj.autoUploadSettings=!!obj.autoUploadSettings;
-  obj.docImages=obj.docImages||{"0":"","25":"","50":"","75":"","100":""};
+  obj.docImages=migrateDocImages_(obj.docImages,(obj.puzzles||[]).length);
   const userBgm=(obj.bgmTracks||[]).filter(t=>!(t&&t.builtin)&&!(t&&String(t.id||"").startsWith("builtin_bgm_"))).map((t,i)=>({id:t.id||("bgm_"+Date.now()+"_"+i+"_"+Math.random().toString(16).slice(2)),name:t.name||("BGM"+(i+1)),type:t.type||"audio/mpeg",data:t.data||t,size:t.size||0}));
   const userSe=(obj.seTracks||[]).filter(t=>!(t&&t.builtin)&&!(t&&String(t.id||"").startsWith("builtin_se_"))).map((t,i)=>({id:t.id||("se_"+Date.now()+"_"+i+"_"+Math.random().toString(16).slice(2)),name:t.name||("SE"+(i+1)),type:t.type||"audio/mpeg",data:t.data||t,size:t.size||0}));
   obj.bgmTracks=[...BUILTIN_BGM,...userBgm];
@@ -410,10 +448,10 @@ function fullDoc(){return (data.plainDoc||"").replaceAll("{{codeword}}",data.cod
 function isWordChar(ch){return /[ぁ-んァ-ン一-龥A-Za-z0-9]/.test(ch)}
 function makeCipher(text){const cs=["■","□","◆","◇","△","▲","○","●","※","✦"];let out="";for(const ch of text){if(ch=="\n"||ch==" "||ch=="　"||"━━━━━━━━━━━━━━「」『』。、".includes(ch))out+=ch;else if(isWordChar(ch))out+=cs[Math.floor(Math.random()*cs.length)];else out+=ch}return out}
 function revealByRate(text,rate){const code=data.codeword||"";let out="",cs=["■","□","◆","◇","△","▲","○","●","※"],count=0;for(let i=0;i<text.length;i++){let ch=text[i];if(code&&text.slice(i,i+code.length)===code){out+=cs[count%cs.length].repeat(code.length);i+=code.length-1;continue}if(ch=="\n"||ch==" "||ch=="　"||"━━━━━━━━━━━━━━「」『』。、".includes(ch)){out+=ch;continue}if(isWordChar(ch)){count++;out+=(count%100)<rate?ch:cs[count%cs.length]}else out+=ch}return out}
-function showDoc(id,rate){let img=(data.docImages||{})[String(rate)],el=document.getElementById(id);if(img){let src=assetSrc(img);el.innerHTML=src?`<img class="doc-img" src="${esc(src)}" onclick="openImgModal('${esc(img)}')">`:`<div class="notice small">画像データ同期待ちです。管理画面で「アップ済み画像を反映」を押してください。</div>`;return}el.textContent=rate===0?makeCipher(fullDoc()):(rate<100?revealByRate(fullDoc(),rate):fullDoc())}
+function showDoc(id,stageIndex,pct){let img=(data.docImages||{})[String(stageIndex)],el=document.getElementById(id);if(img){let src=assetSrc(img);el.innerHTML=src?`<img class="doc-img" src="${esc(src)}" onclick="openImgModal('${esc(img)}')">`:`<div class="notice small">画像データ同期待ちです。管理画面で「アップ済み画像を反映」を押してください。</div>`;return}el.textContent=pct<=0?makeCipher(fullDoc()):(pct<100?revealByRate(fullDoc(),pct):fullDoc())}
 function showOnly(id){["start","stage","docProgress","clear","certificate","gameover","admin"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden")}
 function drawTimer(){let m=Math.floor(left/60),s=left%60;document.getElementById("timer").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")}
-function init(){document.getElementById("startTitle").textContent=data.title;document.getElementById("headerTitle").textContent=data.title;document.getElementById("startSub").textContent=`制限時間${data.minutes}分 / 機密文書解読クエスト`;document.getElementById("startStory").innerHTML=nl2br(data.intro);showDoc("startDocument",0)}
+function init(){document.getElementById("startTitle").textContent=data.title;document.getElementById("headerTitle").textContent=data.title;document.getElementById("startSub").textContent=`制限時間${data.minutes}分 / 機密文書解読クエスト`;document.getElementById("startStory").innerHTML=nl2br(data.intro);showDoc("startDocument",0,0)}
 function startQuest(){totalTime=data.minutes*60;left=totalTime;current=0;certNo="#"+Math.floor(100000+Math.random()*900000);startBgm();document.getElementById("topbar").classList.remove("hidden");showOnly("stage");loadStage();drawTimer();timerId=setInterval(()=>{left--;drawTimer();if(left<=0){clearInterval(timerId);document.getElementById("topbar").classList.add("hidden");showOnly("gameover")}},1000)}
 function loadStage(){hintCount=0;imgIndex=0;document.getElementById("answer").value="";document.getElementById("hintArea").innerHTML="";document.getElementById("message").classList.add("hidden");let p=data.puzzles[current];if(p.bgmId)setBgmById(p.bgmId);document.getElementById("stageLabel").textContent=`第${current+1}問`;document.getElementById("difficulty").textContent=p.difficulty||"";document.getElementById("stageTitle").textContent=p.title||"";document.getElementById("stageBody").innerHTML='<div class="puzzle-box">'+nl2br(p.body||"")+'</div>';renderPuzzleImage()}
 function renderPuzzleImage(){let p=data.puzzles[current];let img=currentImage(p);let box=document.getElementById("stageImage");let src=assetSrc(img);if(!img||!src){box.innerHTML=img?`<div class="notice small">画像データ同期待ちです。</div>`:"";return}let hs=(p.hotspots||[]).filter(h=>(h.fromIndex||0)===imgIndex);box.innerHTML=`<div class="img-wrap"><img class="problem-img" src="${esc(src)}" onclick="handleImageMiss(event)">${hs.map((h,i)=>`<button class="hotspot" style="left:${h.x}%;top:${h.y}%;width:${h.size||14}%;height:${h.size||14}%;" onclick="event.stopPropagation();tapHotspot(${i})" aria-label="調べる"></button>`).join("")}<div id="imgMsg" class="img-message hidden"></div></div><button class="secondary" onclick="openImgModal('${esc(img)}')">画像を大きく見る</button>`}
@@ -425,13 +463,85 @@ function runEffect(name){let el=document.getElementById("stage");if(name==="shak
 function setMsg(txt,cls=""){let el=document.getElementById("message");el.className="notice "+cls;el.innerHTML=txt;el.classList.remove("hidden")}
 function showHint(){let hints=data.puzzles[current].hints||[];if(hintCount<hints.length){let d=document.createElement("div");d.className="hint";d.innerHTML="<strong>ヒント</strong><br>"+nl2br(hints[hintCount]);document.getElementById("hintArea").appendChild(d);hintCount++}else setMsg("これ以上のヒントはありません。","error")}
 function checkAnswer(){let a=normalize(document.getElementById("answer").value),p=data.puzzles[current];if((p.answers||[]).map(normalize).includes(a)){playSe("correct");current===data.puzzles.length-1?showFinal():showProgress(current)}else{playSe("wrong");setMsg("不正解です。","error")}}
-function showProgress(idx){playSe("analysis");let p=data.puzzles[idx],rate=Math.round(((idx+1)/data.puzzles.length)*100);document.getElementById("progressTitle").textContent=p.clearTitle||`第${idx+1}封印解除`;document.getElementById("progressSub").textContent=p.clearText||"機密文書の解析が進行しています。";showDoc("progressDocument",rate);document.getElementById("docBar").style.width=rate+"%";document.getElementById("docPercent").textContent="解析率 "+rate+"%";showOnly("docProgress")}
+function showProgress(idx){playSe("analysis");let p=data.puzzles[idx],n=data.puzzles.length,rate=Math.round(((idx+1)/n)*100);document.getElementById("progressTitle").textContent=p.clearTitle||`第${idx+1}封印解除`;document.getElementById("progressSub").textContent=p.clearText||"機密文書の解析が進行しています。";showDoc("progressDocument",idx+1,rate);document.getElementById("docBar").style.width=rate+"%";document.getElementById("docPercent").textContent="解析率 "+rate+"%";showOnly("docProgress")}
 function nextAfterProgress(){current++;showOnly("stage");loadStage()}
-function showFinal(){clearInterval(timerId);document.getElementById("topbar").classList.add("hidden");showDoc("finalDocument",75);document.getElementById("finalBar").style.width="75%";document.getElementById("finalPercent").textContent="解析率 75%";document.getElementById("finalRevealBtn").classList.remove("hidden");document.getElementById("presentArea").classList.add("hidden");showOnly("clear")}
+function showFinal(){clearInterval(timerId);document.getElementById("topbar").classList.add("hidden");let n=data.puzzles.length,stage=Math.max(0,n-1),rate=n>0?Math.round((stage/n)*100):0;showDoc("finalDocument",stage,rate);document.getElementById("finalBar").style.width=rate+"%";document.getElementById("finalPercent").textContent="解析率 "+rate+"%";document.getElementById("finalRevealBtn").classList.remove("hidden");document.getElementById("presentArea").classList.add("hidden");showOnly("clear")}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
-async function startFinalReveal(){playSe("analysis");document.getElementById("finalRevealBtn").classList.add("hidden");for(const r of [76,81,88,94,99,100]){document.getElementById("finalBar").style.width=r+"%";document.getElementById("finalPercent").textContent="解析率 "+r+"%";await wait(330)}await revealCodeword()}
+async function startFinalReveal(){playSe("analysis");document.getElementById("finalRevealBtn").classList.add("hidden");let n=data.puzzles.length,startRate=n>0?Math.round((Math.max(0,n-1)/n)*100):75,steps=6;for(let s=1;s<=steps;s++){let r=Math.round(startRate+(100-startRate)*(s/steps));document.getElementById("finalBar").style.width=r+"%";document.getElementById("finalPercent").textContent="解析率 "+r+"%";await wait(330)}await revealCodeword()}
 async function revealCodeword(){let text=fullDoc(),code=data.codeword||"",target=document.getElementById("finalDocument");if(!code){target.textContent=text;document.getElementById("presentArea").classList.remove("hidden");return}target.textContent=text.replace(code,"■".repeat(code.length));await wait(600);for(let i=1;i<=code.length;i++){target.textContent=text.replace(code,code.slice(0,i)+"■".repeat(code.length-i));await wait(420)}target.textContent=text;document.getElementById("finalDocBox").classList.add("flash");document.getElementById("presentArea").classList.remove("hidden")}
-function showCertificate(){playSe("clear");document.getElementById("certCodeword").textContent="『"+(data.codeword||"")+"』";document.getElementById("certNo").textContent=certNo;showOnly("certificate")}
+function showCertificate(){playSe("clear");document.getElementById("certCodeword").textContent="『"+(data.codeword||"")+"』";document.getElementById("certNo").textContent=certNo;resetSurvey();showOnly("certificate")}
+let surveyAnswers={fun:null,difficulty:null,again:null};
+function resetSurvey(){
+  surveyAnswers={fun:null,difficulty:null,again:null};
+  ["sv_fun_bad","sv_fun_mid","sv_fun_good","sv_diff_easy","sv_diff_mid","sv_diff_hard","sv_again_yes","sv_again_no"].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("selected")});
+  const btn=document.getElementById("surveySubmitBtn");if(btn)btn.classList.add("hidden");
+  const thanks=document.getElementById("surveyThanks");if(thanks)thanks.classList.add("hidden");
+  const qs=document.getElementById("surveyQuestions");if(qs)qs.classList.remove("hidden");
+}
+function pickSurvey(field,value){
+  surveyAnswers[field]=value;
+  const prefix={fun:"sv_fun_",difficulty:"sv_diff_",again:"sv_again_"}[field];
+  const idMap={fun:{bad:"bad",mid:"mid",good:"good"},difficulty:{easy:"easy",mid:"mid",hard:"hard"},again:{yes:"yes",no:"no"}}[field];
+  Object.values(idMap).forEach(v=>{const el=document.getElementById(prefix+v);if(el)el.classList.remove("selected")});
+  const sel=document.getElementById(prefix+idMap[value]);if(sel)sel.classList.add("selected");
+  const done=surveyAnswers.fun&&surveyAnswers.difficulty&&surveyAnswers.again;
+  const btn=document.getElementById("surveySubmitBtn");if(btn)btn.classList.toggle("hidden",!done);
+}
+function submitSurvey(){
+  const funLabel={bad:"つまらない",mid:"ふつう",good:"たのしい"}[surveyAnswers.fun]||"未回答";
+  const diffLabel={easy:"かんたん",mid:"ふつう",hard:"むずかしい"}[surveyAnswers.difficulty]||"未回答";
+  const againLabel={yes:"する",no:"しない"}[surveyAnswers.again]||"未回答";
+  const url=(data.surveyWebhookUrl||"").trim();
+  if(url){
+    try{
+      const content=`【アンケート結果】\n楽しさ: ${funLabel}\n難易度: ${diffLabel}\n次回参加: ${againLabel}\n問題セット: ${data.title||""}`;
+      fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content}),mode:"no-cors"}).catch(e=>console.error(e));
+    }catch(e){console.error(e)}
+  }
+  const syncUrl=(data.assetSyncUrl||"").trim();
+  if(syncUrl){
+    try{
+      const fd=new FormData();
+      fd.append("action","submitSurvey");
+      fd.append("fun",surveyAnswers.fun||"");
+      fd.append("difficulty",surveyAnswers.difficulty||"");
+      fd.append("again",surveyAnswers.again||"");
+      fetch(syncUrl,{method:"POST",body:fd,mode:"no-cors"}).catch(e=>console.error(e));
+    }catch(e){console.error(e)}
+  }
+  const qs=document.getElementById("surveyQuestions");if(qs)qs.classList.add("hidden");
+  const thanks=document.getElementById("surveyThanks");if(thanks)thanks.classList.remove("hidden");
+}
+function loadSurveyStats(){
+  const url=(data.assetSyncUrl||"").trim();
+  const box=document.getElementById("surveyStatsBox");
+  if(!url){if(box){box.classList.remove("hidden");box.textContent="先に画像同期スクリプトURLを設定してください。";}return}
+  if(box){box.classList.remove("hidden");box.textContent="集計を取得しています…";}
+  const cb="guildSurveyStatsCb_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+  window[cb]=payload=>{
+    try{
+      if(payload&&payload.ok&&payload.counts){
+        const c=payload.counts;
+        const lines=[
+          `回答数: ${c.total||0}件`,
+          `楽しさ - たのしい:${(c.fun&&c.fun.good)||0} / ふつう:${(c.fun&&c.fun.mid)||0} / つまらない:${(c.fun&&c.fun.bad)||0}`,
+          `難易度 - かんたん:${(c.difficulty&&c.difficulty.easy)||0} / ふつう:${(c.difficulty&&c.difficulty.mid)||0} / むずかしい:${(c.difficulty&&c.difficulty.hard)||0}`,
+          `次回参加 - する:${(c.again&&c.again.yes)||0} / しない:${(c.again&&c.again.no)||0}`
+        ];
+        if(box)box.innerHTML=lines.join("<br>");
+      }else if(box){
+        box.textContent="集計を取得できませんでした。まだ回答がないか、GAS側が集計機能に未対応の可能性があります。";
+      }
+    }finally{
+      delete window[cb];
+      if(script&&script.parentNode)script.parentNode.removeChild(script);
+    }
+  };
+  const script=document.createElement("script");
+  script.onerror=()=>{delete window[cb];if(box)box.textContent="集計の取得に失敗しました。";};
+  script.src=url+(url.includes("?")?"&":"?")+"action=surveyStats&callback="+encodeURIComponent(cb)+"&t="+Date.now();
+  document.body.appendChild(script);
+}
 function openImgModal(src){document.getElementById("modalImg").src=assetSrc(src)||src;document.getElementById("imgModal").classList.remove("hidden")}
 function closeImgModal(){document.getElementById("imgModal").classList.add("hidden")}
 function startBgm(){let audio=document.getElementById("bgm");if(!data.bgmTracks||!data.bgmTracks.length)return;playlist=[...data.bgmTracks].sort(()=>Math.random()-0.5);playNextBgm();audio.onended=playNextBgm}
@@ -466,7 +576,7 @@ function openAdmin(){
   if(pass!==(data.adminPassword||"OTAKU")){alert("パスワードが違います");return}
   showAdminEditor();
 }
-function showAdminEditor(){showOnly("admin");document.getElementById("adminTitle").value=data.title;document.getElementById("adminIntro").value=data.intro;document.getElementById("adminMinutes").value=data.minutes;document.getElementById("adminCodeword").value=data.codeword;document.getElementById("adminPassword").value=data.adminPassword||"OTAKU";document.getElementById("adminPlainDoc").value=data.plainDoc;document.getElementById("assetSyncUrl").value=data.assetSyncUrl||"";document.getElementById("autoUploadImages").checked=!!data.autoUploadImages;document.getElementById("autoUploadSettings").checked=!!data.autoUploadSettings;renderDocImageEditors();renderBgmList();renderSeList();renderSeControls();renderAdminPuzzles()}
+function showAdminEditor(){showOnly("admin");document.getElementById("adminTitle").value=data.title;document.getElementById("adminIntro").value=data.intro;document.getElementById("adminMinutes").value=data.minutes;document.getElementById("adminCodeword").value=data.codeword;document.getElementById("adminPassword").value=data.adminPassword||"OTAKU";document.getElementById("adminPlainDoc").value=data.plainDoc;document.getElementById("assetSyncUrl").value=data.assetSyncUrl||"";document.getElementById("surveyWebhookUrl").value=data.surveyWebhookUrl||"";document.getElementById("autoUploadImages").checked=!!data.autoUploadImages;document.getElementById("autoUploadSettings").checked=!!data.autoUploadSettings;renderDocImageEditors();renderBgmList();renderSeList();renderSeControls();renderAdminPuzzles()}
 
 function setMediaStatus(html){
   const el=document.getElementById("mediaStatus");
@@ -601,9 +711,16 @@ function moveHotspot(i,j,dir){saveAdminNoAlert();let arr=data.puzzles[i].hotspot
 function renderDocImageEditors(){
   const box=document.getElementById("adminDocImages");
   if(!box)return;
-  data.docImages=data.docImages||{"0":"","25":"","50":"","75":"","100":""};
-  const labels={"0":"解析率0%","25":"解析率25%","50":"解析率50%","75":"解析率75%","100":"解析率100%"};
-  box.innerHTML=["0","25","50","75","100"].map(k=>`<div class="image-control"><strong>${labels[k]}</strong><div class="file-note">写真またはファイルから選択、またはGitHubにアップロード済みのファイル名を下欄で指定できます。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadDocImage('${k}',this)"></label><img id="doc_preview_${k}" class="image-preview ${assetSrc(data.docImages[k])?"":"hidden"}" src="${esc(assetSrc(data.docImages[k])||"")}"><button type="button" class="secondary" onclick="removeDocImage('${k}')">画像を削除</button>${githubPathRow('gh_doc_'+k,data.docImages[k])}<button type="button" class="secondary mini-btn" style="width:auto;margin-top:6px" onclick="applyGithubPath('doc','${k}')">このファイル名を使う</button></div>`).join("");
+  data.docImages=data.docImages||{};
+  const n=(data.puzzles||[]).length||1;
+  const keys=Array.from({length:n},(_,i)=>String(i));
+  const labelFor=(k)=>{
+    const idx=parseInt(k,10);
+    if(idx===0)return `開始時（解析率0%）`;
+    if(idx===n-1)return `最終問題クリア直前（解析率${Math.round((n-1)/n*100)}%）`;
+    return `第${idx}問クリア後（解析率${Math.round((idx/n)*100)}%）`;
+  };
+  box.innerHTML=`<div class="notice small">問題数に合わせて、下に${n}枚分の欄が表示されます。問題を追加・削除すると欄の数も自動で変わります。</div>`+keys.map(k=>`<div class="image-control"><strong>${labelFor(k)}</strong><div class="file-note">写真またはファイルから選択、またはGitHubにアップロード済みのファイル名を下欄で指定できます。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadDocImage('${k}',this)"></label><img id="doc_preview_${k}" class="image-preview ${assetSrc(data.docImages[k])?"":"hidden"}" src="${esc(assetSrc(data.docImages[k])||"")}"><button type="button" class="secondary" onclick="removeDocImage('${k}')">画像を削除</button>${githubPathRow('gh_doc_'+k,data.docImages[k])}<button type="button" class="secondary mini-btn" style="width:auto;margin-top:6px" onclick="applyGithubPath('doc','${k}')">このファイル名を使う</button></div>`).join("");
 }
 async function uploadDocImage(k,input){
   const file=input.files&&input.files[0];
@@ -639,11 +756,11 @@ async function uploadHotspotImage(i,j,input){
 function removeHotspotImage(i,j){saveAdminNoAlert();if(data.puzzles[i]&&data.puzzles[i].hotspots&&data.puzzles[i].hotspots[j])data.puzzles[i].hotspots[j].toImage="";saveData();renderAdminPuzzles()}
 function setPreview(id,src){const img=document.getElementById(id);if(!img)return;img.src=src||"";img.classList.toggle("hidden",!src)}
 
-function addPuzzle(){saveAdminNoAlert();data.puzzles.push(samplePuzzle(data.puzzles.length+1));saveData();renderAdminPuzzles()}
-function deletePuzzle(i){if(data.puzzles.length<=1)return alert("最低1問は必要です");if(confirm("削除しますか？")){saveAdminNoAlert();data.puzzles.splice(i,1);saveData();renderAdminPuzzles()}}
+function addPuzzle(){saveAdminNoAlert();data.puzzles.push(samplePuzzle(data.puzzles.length+1));saveData();renderDocImageEditors();renderAdminPuzzles()}
+function deletePuzzle(i){if(data.puzzles.length<=1)return alert("最低1問は必要です");if(confirm("削除しますか？")){saveAdminNoAlert();data.puzzles.splice(i,1);saveData();renderDocImageEditors();renderAdminPuzzles()}}
 function addHintLine(i){const ta=document.getElementById(`p_hints_${i}`);if(!ta)return;ta.value=ta.value?ta.value.replace(/\n+$/,"")+"\n":"";ta.focus();const len=ta.value.length;ta.setSelectionRange(len,len)}
 function deleteHotspot(i,j){saveAdminNoAlert();data.puzzles[i].hotspots.splice(j,1);saveData();renderAdminPuzzles()}
-function collectAdminData(){data.title=document.getElementById("adminTitle").value;data.intro=document.getElementById("adminIntro").value;data.minutes=parseInt(document.getElementById("adminMinutes").value||"60",10);data.codeword=document.getElementById("adminCodeword").value;data.adminPassword=(document.getElementById("adminPassword").value||"OTAKU").trim()||"OTAKU";data.plainDoc=document.getElementById("adminPlainDoc").value;data.assetSyncUrl=(document.getElementById("assetSyncUrl")&&document.getElementById("assetSyncUrl").value.trim())||"";data.autoUploadImages=!!(document.getElementById("autoUploadImages")&&document.getElementById("autoUploadImages").checked);data.autoUploadSettings=!!(document.getElementById("autoUploadSettings")&&document.getElementById("autoUploadSettings").checked);data.docImages=data.docImages||{"0":"","25":"","50":"","75":"","100":""};data.puzzles=data.puzzles.map((p,i)=>{let hs=(p.hotspots||[]).map((h,j)=>({fromIndex:parseInt(val(`hs_from_${i}_${j}`,0),10),x:parseFloat(val(`hs_x_${i}_${j}`,50)),y:parseFloat(val(`hs_y_${i}_${j}`,50)),size:parseFloat(val(`hs_size_${i}_${j}`,14)),toImage:val(`hs_img_${i}_${j}`,""),toIndex:parseInt(val(`hs_to_${i}_${j}`,1),10),message:val(`hs_msg_${i}_${j}`,""),seId:val(`hs_se_${i}_${j}`,""),bgmId:val(`hs_bgm_${i}_${j}`,""),effect:val(`hs_effect_${i}_${j}`,""),vibrate:!!(document.getElementById(`hs_vib_${i}_${j}`)&&document.getElementById(`hs_vib_${i}_${j}`).checked)}));return{title:val(`p_title_${i}`,""),difficulty:val(`p_diff_${i}`,""),bgmId:val(`p_bgm_${i}`,""),wrongTapMessage:val(`p_wrong_${i}`,"違うようだ…"),image:val(`p_image_${i}`,""),body:val(`p_body_${i}`,""),answers:val(`p_answers_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),hints:val(`p_hints_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),clearTitle:val(`p_clearTitle_${i}`,""),clearText:val(`p_clearText_${i}`,""),hotspots:hs}})}
+function collectAdminData(){data.title=document.getElementById("adminTitle").value;data.intro=document.getElementById("adminIntro").value;data.minutes=parseInt(document.getElementById("adminMinutes").value||"60",10);data.codeword=document.getElementById("adminCodeword").value;data.adminPassword=(document.getElementById("adminPassword").value||"OTAKU").trim()||"OTAKU";data.plainDoc=document.getElementById("adminPlainDoc").value;data.assetSyncUrl=(document.getElementById("assetSyncUrl")&&document.getElementById("assetSyncUrl").value.trim())||"";data.surveyWebhookUrl=(document.getElementById("surveyWebhookUrl")&&document.getElementById("surveyWebhookUrl").value.trim())||"";data.autoUploadImages=!!(document.getElementById("autoUploadImages")&&document.getElementById("autoUploadImages").checked);data.autoUploadSettings=!!(document.getElementById("autoUploadSettings")&&document.getElementById("autoUploadSettings").checked);data.docImages=data.docImages||{};data.puzzles=data.puzzles.map((p,i)=>{let hs=(p.hotspots||[]).map((h,j)=>({fromIndex:parseInt(val(`hs_from_${i}_${j}`,0),10),x:parseFloat(val(`hs_x_${i}_${j}`,50)),y:parseFloat(val(`hs_y_${i}_${j}`,50)),size:parseFloat(val(`hs_size_${i}_${j}`,14)),toImage:val(`hs_img_${i}_${j}`,""),toIndex:parseInt(val(`hs_to_${i}_${j}`,1),10),message:val(`hs_msg_${i}_${j}`,""),seId:val(`hs_se_${i}_${j}`,""),bgmId:val(`hs_bgm_${i}_${j}`,""),effect:val(`hs_effect_${i}_${j}`,""),vibrate:!!(document.getElementById(`hs_vib_${i}_${j}`)&&document.getElementById(`hs_vib_${i}_${j}`).checked)}));return{title:val(`p_title_${i}`,""),difficulty:val(`p_diff_${i}`,""),bgmId:val(`p_bgm_${i}`,""),wrongTapMessage:val(`p_wrong_${i}`,"違うようだ…"),image:val(`p_image_${i}`,""),body:val(`p_body_${i}`,""),answers:val(`p_answers_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),hints:val(`p_hints_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),clearTitle:val(`p_clearTitle_${i}`,""),clearText:val(`p_clearText_${i}`,""),hotspots:hs}})}
 function saveAdminNoAlert(){collectAdminData();saveData();init()}
 function saveAdmin(){saveAdminNoAlert();if(data.assetSyncUrl&&data.autoUploadSettings)postSettingsToGas(false);alert("保存しました");renderAdminPuzzles()}
 function val(id,def){let e=document.getElementById(id);return e?e.value:def}
