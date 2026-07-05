@@ -441,84 +441,99 @@ function renderAdminPuzzles(){
     <label>ヒント（改行で複数、下のボタンでも追加できます）</label><textarea id="p_hints_${i}">${esc((p.hints||[]).join("\n"))}</textarea><button type="button" class="secondary mini-btn" style="width:auto;margin-top:8px" onclick="addHintLine(${i})">＋ヒントを1つ追加</button>
     <label>正解後タイトル</label><input id="p_clearTitle_${i}" value="${esc(p.clearTitle||"")}">
     <label>正解後メッセージ</label><textarea id="p_clearText_${i}">${esc(p.clearText||"")}</textarea>
-    <h4>画像タップ探索</h4>
-    <div class="notice small">画像を押すと選択中の○を移動できます。座標入力は不要です。○の大きさはスライダーで調整します。</div>
-    <div id="hscanvas_${i}">${hotspotCanvas(i)}</div>
-    <div id="hs_${i}">${(p.hotspots||[]).map((h,j)=>hotspotEditor(i,j,h)).join("")}</div>
-    <button class="secondary" onclick="addHotspot(${i})">タップ地点を追加</button>`;
+    <h4>画像タップ探索（1枚ずつ設定）</h4>
+    <div class="notice small">下に「1枚目の画像」「2枚目の画像」…の順で表示されます。それぞれの枠の中だけにタップ地点を追加・配置してください。他の画像には影響しません。</div>
+    <div id="hsflow_${i}">${renderHotspotFlow(i)}</div>`;
     box.appendChild(div);
   });
   setTimeout(()=>data.puzzles.forEach((_,i)=>drawAdminMarkers(i)),0);
 }
 function imageForIndex(p,idx){if(!idx)return p.image||"";let found=(p.hotspots||[]).find(h=>(h.toIndex||0)===idx&&h.toImage);return found?found.toImage:""}
 function knownImageIndexes(p){let set=new Set([0]);(p.hotspots||[]).forEach(h=>{if(h.toImage)set.add(h.toIndex||1)});return Array.from(set).sort((a,b)=>a-b)}
-function setAdminPreviewIndex(i,v){window.adminPreviewIndex=window.adminPreviewIndex||{};window.adminPreviewIndex[i]=parseInt(v,10)||0;refreshHotspotCanvas(i)}
-function refreshHotspotCanvas(i){const el=document.getElementById(`hscanvas_${i}`);if(el)el.innerHTML=hotspotCanvas(i);drawAdminMarkers(i)}
-function hotspotCanvas(i){
+function refreshHotspotFlow(i){const el=document.getElementById(`hsflow_${i}`);if(el){el.innerHTML=renderHotspotFlow(i);drawAdminMarkers(i)}}
+function renderHotspotFlow(i){
   const p=data.puzzles[i];
-  window.adminPreviewIndex=window.adminPreviewIndex||{};
-  const known=knownImageIndexes(p);
-  let previewIdx=window.adminPreviewIndex[i]||0;
-  if(!known.includes(previewIdx))previewIdx=0;
-  window.adminPreviewIndex[i]=previewIdx;
-  const selector=`<label>どの画像にタップ地点を置くか</label><select onchange="setAdminPreviewIndex(${i},this.value)">${known.map(n=>`<option value="${n}" ${n===previewIdx?'selected':''}>${n===0?'①最初の画像':'②以降 切替後の画像'+n}</option>`).join("")}</select>`;
-  const img=assetSrc(imageForIndex(p,previewIdx));
-  if(!img)return `${selector}<div class="notice small">この画像はまだ登録されていません。対象のタップ地点で「押した後の画像」を追加してください。</div>`;
-  return `${selector}<div class="hotspot-picker" id="picker_${i}" onclick="placeSelectedHotspot(event,${i})"><img src="${esc(img)}" alt="タップ地点編集"><div id="markers_${i}"></div></div><div class="drag-note">今表示中：${previewIdx===0?'最初の画像':'切替後の画像'+previewIdx}／編集中のタップ地点を選んでから、画像上を指で押してください。</div>`;
+  const steps=knownImageIndexes(p);
+  return steps.map((stepIdx,pos)=>renderImageStep(i,stepIdx,pos+1)).join("");
+}
+function renderImageStep(i,stepIdx,stepNo){
+  const p=data.puzzles[i];
+  const img=assetSrc(imageForIndex(p,stepIdx));
+  const hsForStep=(p.hotspots||[]).map((h,j)=>({h,j})).filter(o=>(o.h.fromIndex||0)===stepIdx);
+  let body;
+  if(!img){
+    body=stepIdx===0
+      ?`<div class="notice small">上の「問題画像」欄からこの問題の1枚目の画像を追加してください。</div>`
+      :`<div class="notice small">この画像はまだ登録されていません。ひとつ前の画像のタップ地点で「押した後の画像」を追加すると、ここに表示されます。</div>`;
+  }else{
+    body=`<div class="hotspot-picker" id="picker_${i}_${stepIdx}" onclick="placeSelectedHotspot(event,${i},${stepIdx})"><img src="${esc(img)}" alt="タップ地点編集"><div id="markers_${i}_${stepIdx}"></div></div>
+    <div class="drag-note">タップ地点を選んでから、この画像を指で押すと位置を動かせます。</div>
+    ${hsForStep.map(o=>hotspotEditor(i,o.j,o.h)).join("")}
+    <button type="button" class="secondary" onclick="addHotspotForStep(${i},${stepIdx})">＋この画像にタップ地点を追加</button>`;
+  }
+  return `<div class="admin-stage">
+    <h4 style="margin-top:0">${stepNo}枚目の画像${stepIdx===0?'（最初）':''}</h4>
+    ${body}
+  </div>`;
 }
 function hotspotEditor(i,j,h){
-  return `<div class="admin-hotspot" id="hs_card_${i}_${j}" onclick="selectHotspot(${i},${j})"><strong>タップ地点 ${j+1}</strong>
+  return `<div class="admin-hotspot" id="hs_card_${i}_${j}" onclick="selectHotspot(${i},${j})"><strong>タップ地点</strong>
   <input type="hidden" id="hs_from_${i}_${j}" value="${h.fromIndex||0}"><input type="hidden" id="hs_x_${i}_${j}" value="${h.x||50}"><input type="hidden" id="hs_y_${i}_${j}" value="${h.y||50}">
-  <label>この地点が反応する画像</label><select id="hs_from_sel_${i}_${j}" onchange="hsFromChanged(${i},${j},this.value)"><option value="0" ${(h.fromIndex||0)===0?'selected':''}>最初の画像</option>${(data.puzzles[i].hotspots||[]).map((x,k)=>x.toImage?`<option value="${x.toIndex||k+1}" ${(h.fromIndex||0)===(x.toIndex||k+1)?'selected':''}>切替後の画像 ${x.toIndex||k+1}</option>`:'').join('')}</select>
   <label>判定サイズ</label><div class="range-row"><input id="hs_size_${i}_${j}" type="range" min="6" max="45" value="${h.size||14}" oninput="document.getElementById('hs_size_label_${i}_${j}').textContent=this.value+'%';drawAdminMarkers(${i})"><span id="hs_size_label_${i}_${j}">${h.size||14}%</span></div>
-  <label>押した後の画像</label><div class="image-control"><input type="hidden" id="hs_img_${i}_${j}" value="${esc(h.toImage||"")}"><div class="file-note">画像追加ボタンから選択。URL入力は使いません。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadHotspotImage(${i},${j},this)"></label><img id="hs_preview_${i}_${j}" class="image-preview ${assetSrc(h.toImage)?"":"hidden"}" src="${esc(assetSrc(h.toImage)||"")}"><button type="button" class="secondary" onclick="removeHotspotImage(${i},${j})">画像を削除</button></div>
+  <label>押した後の画像（次の画像として登録されます）</label><div class="image-control"><input type="hidden" id="hs_img_${i}_${j}" value="${esc(h.toImage||"")}"><div class="file-note">画像追加ボタンから選択。URL入力は使いません。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadHotspotImage(${i},${j},this)"></label><img id="hs_preview_${i}_${j}" class="image-preview ${assetSrc(h.toImage)?"":"hidden"}" src="${esc(assetSrc(h.toImage)||"")}"><button type="button" class="secondary" onclick="removeHotspotImage(${i},${j})">画像を削除</button></div>
   <label>切替後の画像番号</label><select id="hs_to_${i}_${j}">${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${(h.toIndex||((h.fromIndex||0)+1))===n?'selected':''}>画像${n}</option>`).join('')}</select>
   <label>メッセージ</label><input id="hs_msg_${i}_${j}" value="${esc(h.message||"")}">
   <label>このタップだけのSE</label><select id="hs_se_${i}_${j}">${seOptions(h.seId||"")}</select>
   <label>このタップでBGM変更</label><select id="hs_bgm_${i}_${j}">${bgmOptions(h.bgmId||"")}</select>
   <label>演出</label><select id="hs_effect_${i}_${j}"><option value="" ${!h.effect?'selected':''}>なし</option><option value="fade" ${h.effect==='fade'?'selected':''}>フェード</option><option value="dark" ${h.effect==='dark'?'selected':''}>暗転</option><option value="shake" ${h.effect==='shake'?'selected':''}>画面シェイク</option></select>
   <label><input id="hs_vib_${i}_${j}" type="checkbox" ${h.vibrate?'checked':''}> 振動させる</label>
-  <div class="admin-tools"><button class="secondary" onclick="event.stopPropagation();moveHotspot(${i},${j},-1)">上へ</button><button class="secondary" onclick="event.stopPropagation();moveHotspot(${i},${j},1)">下へ</button><button class="danger" onclick="event.stopPropagation();deleteHotspot(${i},${j})">この地点を削除</button></div></div>`;
+  <div class="admin-tools"><button class="danger" onclick="event.stopPropagation();deleteHotspot(${i},${j})">この地点を削除</button></div></div>`;
 }
-function hsFromChanged(i,j,v){
-  const idx=parseInt(v,10)||0;
-  const hf=document.getElementById(`hs_from_${i}_${j}`);if(hf)hf.value=idx;
-  if(data.puzzles[i]&&data.puzzles[i].hotspots[j]){data.puzzles[i].hotspots[j].fromIndex=idx;saveData()}
-  window.adminPreviewIndex=window.adminPreviewIndex||{};
-  window.adminPreviewIndex[i]=idx;
-  selectHotspot(i,j);
+function addHotspotForStep(i,stepIdx){
+  saveAdminNoAlert();
+  data.puzzles[i].hotspots=data.puzzles[i].hotspots||[];
+  data.puzzles[i].hotspots.push({fromIndex:stepIdx,x:50,y:50,size:14,toImage:"",toIndex:stepIdx+1,message:"何かが変化した。",effect:"",vibrate:false,seId:"",bgmId:""});
+  saveData();
+  renderAdminPuzzles();
+  selectHotspot(i,data.puzzles[i].hotspots.length-1);
 }
 function selectHotspot(i,j){
   window.selectedHotspot={i,j};
-  window.adminPreviewIndex=window.adminPreviewIndex||{};
-  const h=data.puzzles[i]&&data.puzzles[i].hotspots[j];
-  window.adminPreviewIndex[i]=h?(h.fromIndex||0):0;
-  refreshHotspotCanvas(i);
+  drawAdminMarkers(i);
+  const card=document.getElementById(`hs_card_${i}_${j}`);
+  if(card&&card.scrollIntoView)card.scrollIntoView({behavior:"smooth",block:"center"});
 }
-function placeSelectedHotspot(ev,i){
-  if(!window.selectedHotspot||window.selectedHotspot.i!==i){if((data.puzzles[i].hotspots||[]).length)window.selectedHotspot={i,j:0};else return}
+function placeSelectedHotspot(ev,i,stepIdx){
+  const p=data.puzzles[i];
+  let sel=window.selectedHotspot;
+  let j=(sel&&sel.i===i)?sel.j:-1;
+  if(j<0||((p.hotspots[j]||{}).fromIndex||0)!==stepIdx){
+    j=(p.hotspots||[]).findIndex(h=>(h.fromIndex||0)===stepIdx);
+    if(j<0)return;
+    window.selectedHotspot={i,j};
+  }
   const rect=ev.currentTarget.getBoundingClientRect();
   const x=Math.max(0,Math.min(100,((ev.clientX-rect.left)/rect.width)*100));
   const y=Math.max(0,Math.min(100,((ev.clientY-rect.top)/rect.height)*100));
-  const j=window.selectedHotspot.j;
-  const previewIdx=(window.adminPreviewIndex&&window.adminPreviewIndex[i])||0;
-  const hx=document.getElementById(`hs_x_${i}_${j}`),hy=document.getElementById(`hs_y_${i}_${j}`),hf=document.getElementById(`hs_from_${i}_${j}`),hfSel=document.getElementById(`hs_from_sel_${i}_${j}`);
+  const hx=document.getElementById(`hs_x_${i}_${j}`),hy=document.getElementById(`hs_y_${i}_${j}`);
   if(hx&&hy){hx.value=x.toFixed(2);hy.value=y.toFixed(2)}
-  if(hf)hf.value=previewIdx;
-  if(hfSel)hfSel.value=String(previewIdx);
-  if(data.puzzles[i]&&data.puzzles[i].hotspots[j]){data.puzzles[i].hotspots[j].x=x;data.puzzles[i].hotspots[j].y=y;data.puzzles[i].hotspots[j].fromIndex=previewIdx;saveData()}
+  if(p.hotspots[j]){p.hotspots[j].x=x;p.hotspots[j].y=y;saveData()}
   drawAdminMarkers(i);
 }
 function drawAdminMarkers(i){
-  const box=document.getElementById(`markers_${i}`);if(!box)return;
-  const p=data.puzzles[i];const sel=window.selectedHotspot&&window.selectedHotspot.i===i?window.selectedHotspot.j:-1;
-  const previewIdx=(window.adminPreviewIndex&&window.adminPreviewIndex[i])||0;
-  box.innerHTML=(p.hotspots||[]).map((h,j)=>{
-    const from=parseInt(val(`hs_from_${i}_${j}`,h.fromIndex||0),10);
-    if(from!==previewIdx)return '';
-    const x=parseFloat(val(`hs_x_${i}_${j}`,h.x||50)),y=parseFloat(val(`hs_y_${i}_${j}`,h.y||50)),size=parseFloat(val(`hs_size_${i}_${j}`,h.size||14));
-    return `<button type="button" class="admin-marker ${sel===j?'selected':''}" style="left:${x}%;top:${y}%;width:${size}%;height:${size}%;" onclick="event.stopPropagation();selectHotspot(${i},${j})">${j+1}</button>`
-  }).join('');
+  const p=data.puzzles[i];
+  const steps=knownImageIndexes(p);
+  const sel=window.selectedHotspot&&window.selectedHotspot.i===i?window.selectedHotspot.j:-1;
+  steps.forEach(stepIdx=>{
+    const box=document.getElementById(`markers_${i}_${stepIdx}`);
+    if(!box)return;
+    box.innerHTML=(p.hotspots||[]).map((h,j)=>{
+      const from=parseInt(val(`hs_from_${i}_${j}`,h.fromIndex||0),10);
+      if(from!==stepIdx)return '';
+      const x=parseFloat(val(`hs_x_${i}_${j}`,h.x||50)),y=parseFloat(val(`hs_y_${i}_${j}`,h.y||50)),size=parseFloat(val(`hs_size_${i}_${j}`,h.size||14));
+      return `<button type="button" class="admin-marker ${sel===j?'selected':''}" style="left:${x}%;top:${y}%;width:${size}%;height:${size}%;" onclick="event.stopPropagation();selectHotspot(${i},${j})">●</button>`
+    }).join('');
+  });
 }
 function movePuzzle(i,dir){saveAdminNoAlert();let ni=i+dir;if(ni<0||ni>=data.puzzles.length)return;[data.puzzles[i],data.puzzles[ni]]=[data.puzzles[ni],data.puzzles[i]];saveData();renderAdminPuzzles()}
 function moveHotspot(i,j,dir){saveAdminNoAlert();let arr=data.puzzles[i].hotspots||[];let nj=j+dir;if(nj<0||nj>=arr.length)return;[arr[j],arr[nj]]=[arr[nj],arr[j]];saveData();renderAdminPuzzles();selectHotspot(i,nj)}
@@ -567,7 +582,6 @@ function setPreview(id,src){const img=document.getElementById(id);if(!img)return
 function addPuzzle(){saveAdminNoAlert();data.puzzles.push(samplePuzzle(data.puzzles.length+1));saveData();renderAdminPuzzles()}
 function deletePuzzle(i){if(data.puzzles.length<=1)return alert("最低1問は必要です");if(confirm("削除しますか？")){saveAdminNoAlert();data.puzzles.splice(i,1);saveData();renderAdminPuzzles()}}
 function addHintLine(i){const ta=document.getElementById(`p_hints_${i}`);if(!ta)return;ta.value=ta.value?ta.value.replace(/\n+$/,"")+"\n":"";ta.focus();const len=ta.value.length;ta.setSelectionRange(len,len)}
-function addHotspot(i){saveAdminNoAlert();const previewIdx=(window.adminPreviewIndex&&window.adminPreviewIndex[i])||0;data.puzzles[i].hotspots=data.puzzles[i].hotspots||[];data.puzzles[i].hotspots.push({fromIndex:previewIdx,x:50,y:50,size:14,toImage:"",toIndex:previewIdx+1,message:"何かが変化した。",effect:"",vibrate:false,seId:"",bgmId:""});saveData();renderAdminPuzzles();selectHotspot(i,data.puzzles[i].hotspots.length-1)}
 function deleteHotspot(i,j){saveAdminNoAlert();data.puzzles[i].hotspots.splice(j,1);saveData();renderAdminPuzzles()}
 function collectAdminData(){data.title=document.getElementById("adminTitle").value;data.intro=document.getElementById("adminIntro").value;data.minutes=parseInt(document.getElementById("adminMinutes").value||"60",10);data.codeword=document.getElementById("adminCodeword").value;data.adminPassword=(document.getElementById("adminPassword").value||"OTAKU").trim()||"OTAKU";data.plainDoc=document.getElementById("adminPlainDoc").value;data.assetSyncUrl=(document.getElementById("assetSyncUrl")&&document.getElementById("assetSyncUrl").value.trim())||"";data.autoUploadImages=!!(document.getElementById("autoUploadImages")&&document.getElementById("autoUploadImages").checked);data.autoUploadSettings=!!(document.getElementById("autoUploadSettings")&&document.getElementById("autoUploadSettings").checked);data.docImages=data.docImages||{"0":"","25":"","50":"","75":"","100":""};data.puzzles=data.puzzles.map((p,i)=>{let hs=(p.hotspots||[]).map((h,j)=>({fromIndex:parseInt(val(`hs_from_${i}_${j}`,0),10),x:parseFloat(val(`hs_x_${i}_${j}`,50)),y:parseFloat(val(`hs_y_${i}_${j}`,50)),size:parseFloat(val(`hs_size_${i}_${j}`,14)),toImage:val(`hs_img_${i}_${j}`,""),toIndex:parseInt(val(`hs_to_${i}_${j}`,1),10),message:val(`hs_msg_${i}_${j}`,""),seId:val(`hs_se_${i}_${j}`,""),bgmId:val(`hs_bgm_${i}_${j}`,""),effect:val(`hs_effect_${i}_${j}`,""),vibrate:!!(document.getElementById(`hs_vib_${i}_${j}`)&&document.getElementById(`hs_vib_${i}_${j}`).checked)}));return{title:val(`p_title_${i}`,""),difficulty:val(`p_diff_${i}`,""),bgmId:val(`p_bgm_${i}`,""),wrongTapMessage:val(`p_wrong_${i}`,"違うようだ…"),image:val(`p_image_${i}`,""),body:val(`p_body_${i}`,""),answers:val(`p_answers_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),hints:val(`p_hints_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),clearTitle:val(`p_clearTitle_${i}`,""),clearText:val(`p_clearText_${i}`,""),hotspots:hs}})}
 function saveAdminNoAlert(){collectAdminData();saveData();init()}
