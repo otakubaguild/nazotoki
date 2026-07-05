@@ -495,7 +495,9 @@ function submitSurvey(){
   if(url){
     try{
       const content=`【アンケート結果】\n楽しさ: ${funLabel}\n難易度: ${diffLabel}\n次回参加: ${againLabel}\n問題セット: ${data.title||""}`;
-      fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content}),mode:"no-cors"}).catch(e=>console.error(e));
+      fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content})})
+        .then(res=>{if(!res.ok){console.error("Discord webhook error",res.status);setMediaStatus("Discordへの送信に失敗しました（ステータス:"+res.status+"）。Webhook URLが正しいか確認してください。")}})
+        .catch(e=>{console.error(e);setMediaStatus("Discordへの送信に失敗しました（通信エラー）。")});
     }catch(e){console.error(e)}
   }
   const syncUrl=(data.assetSyncUrl||"").trim();
