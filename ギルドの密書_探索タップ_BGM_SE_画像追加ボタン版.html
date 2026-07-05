@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ギルドの密書 - 謎解きエンジンEX</title>
+<!-- 外部素材分離版: bgm/ と se/ フォルダをindex.htmlと同じ階層に配置 -->
+<style>
+:root{--bg:#080807;--panel:#15130f;--line:#594524;--gold:#d5ad62;--text:#f4ead2;--muted:#b9ad93;--danger:#d36c6c;--ok:#91d491}
+*{box-sizing:border-box}
+body{margin:0;min-height:100%;background:radial-gradient(circle at top,#221b10 0,#080807 45%,#020202 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;line-height:1.7}
+.wrap{max-width:860px;margin:0 auto;padding:16px 13px 88px}
+.header{position:sticky;top:0;z-index:20;background:rgba(8,8,7,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 14px}
+.header-inner{max-width:860px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.timer{color:var(--gold);font-weight:800;letter-spacing:.08em;font-size:22px}
+.stage-label{color:var(--muted);font-size:13px}
+.card{background:linear-gradient(180deg,rgba(25,22,16,.97),rgba(12,12,11,.97));border:1px solid var(--line);border-radius:16px;padding:20px 17px;box-shadow:0 12px 32px rgba(0,0,0,.42);margin-top:16px}
+.title{color:var(--gold);text-align:center;letter-spacing:.08em;font-size:24px;margin:6px 0 14px}
+.sub{color:var(--muted);text-align:center;font-size:14px}
+hr{border:none;border-top:1px solid var(--line);margin:18px 0}
+button{width:100%;border:1px solid var(--gold);background:#1a1409;color:var(--text);border-radius:12px;padding:13px 14px;font-size:16px;margin-top:12px;cursor:pointer}
+button.secondary{border-color:#555;background:#111;color:var(--muted)}
+button.danger{border-color:var(--danger);color:#ffd0d0}
+input,textarea,select{width:100%;padding:12px;border-radius:10px;border:1px solid #665536;background:#080808;color:var(--text);font-size:16px;margin-top:8px}
+textarea{min-height:110px;resize:vertical}
+label{display:block;margin-top:14px;color:var(--gold);font-size:14px}
+.notice{margin-top:12px;padding:10px 12px;border-radius:10px;background:#0e0e0e;color:var(--muted);border:1px solid #333}
+.error{color:var(--danger)}.ok{color:var(--ok)}.hidden{display:none!important}
+.puzzle-box,.document-box{border:1px dashed #6b5b39;padding:16px;border-radius:12px;background:#0d0d0d;margin:14px 0;white-space:pre-wrap;overflow-x:auto}
+.puzzle-box{font-family:"SFMono-Regular",Consolas,monospace}
+.small{color:var(--muted);font-size:13px}
+.hint{display:block;border-left:3px solid var(--gold);padding:10px 12px;background:#111;color:#d7ceb8;margin-top:10px}
+.tag{display:inline-block;color:#111;background:var(--gold);border-radius:999px;padding:2px 9px;font-size:12px;margin-bottom:8px}
+.problem-img,.doc-img{width:100%;max-height:520px;object-fit:contain;border:1px solid var(--line);border-radius:12px;background:#090909}
+.img-wrap{position:relative;margin:12px 0}
+.hotspot{position:absolute;border:2px solid rgba(213,173,98,.0);background:rgba(213,173,98,.0);border-radius:50%;transform:translate(-50%,-50%);min-width:36px;min-height:36px}
+.hotspot.debug{border-color:rgba(213,173,98,.8);background:rgba(213,173,98,.18)}
+.document-title{font-size:15px;color:var(--gold);text-align:center;margin:0 0 8px}
+.document-box{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;letter-spacing:.03em;background:linear-gradient(180deg,#18140e,#0c0b09);border-style:solid}
+.progress-wrap{margin:12px 0 4px;border:1px solid var(--line);height:12px;border-radius:999px;overflow:hidden;background:#050505}
+.progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#6f5625,var(--gold));transition:width .7s ease}
+.progress-text{text-align:center;color:var(--gold);font-weight:700;letter-spacing:.08em}
+.admin-stage{border:1px solid #333;border-radius:12px;padding:14px;margin:16px 0;background:#101010}
+.admin-hotspot{border:1px dashed #555;border-radius:10px;padding:10px;margin:10px 0;background:#0b0b0b}
+.row{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:720px){.row.two{grid-template-columns:1fr 1fr}.row.three{grid-template-columns:1fr 1fr 1fr}}
+pre.export{white-space:pre-wrap;word-break:break-word;background:#050505;border:1px solid #333;border-radius:10px;padding:10px;color:#ddd}
+.cert{border:2px solid var(--gold);border-radius:16px;padding:20px;text-align:center;background:linear-gradient(180deg,#1b150c,#090908)}
+.cert .big{font-size:26px;color:var(--gold);font-weight:900;letter-spacing:.12em}
+.codeword{font-size:30px;text-align:center;color:var(--gold);font-weight:900;letter-spacing:.12em;margin:12px 0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-img{max-width:100%;max-height:88vh;object-fit:contain}
+.close-x{position:fixed;right:16px;top:12px;width:auto;padding:8px 12px;z-index:101}
+.flash{animation:flash .9s ease 1}@keyframes flash{0%{filter:brightness(1)}50%{filter:brightness(2.1)}100%{filter:brightness(1)}}
+.image-control{border:1px dashed #555;border-radius:12px;padding:12px;margin:10px 0;background:#0b0b0b}
+.image-preview{width:100%;max-height:180px;object-fit:contain;border:1px solid #333;border-radius:10px;background:#050505;margin-top:10px}
+.file-note{font-size:12px;color:var(--muted);margin-top:6px}
+.file-picker{display:block;width:100%;border:1px solid var(--gold);background:#1a1409;color:var(--text);border-radius:12px;padding:12px 14px;text-align:center;margin-top:10px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.file-picker input{display:none}
+.media-row{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #2b2b2b;padding:7px 0}
+.mini-btn{width:auto;margin:0;padding:6px 10px;font-size:12px;border-radius:8px}
+
+.admin-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.admin-tools button{width:auto;flex:1 1 96px;margin-top:0;padding:9px 10px;font-size:13px}
+.hotspot-picker{position:relative;margin-top:10px;border:1px solid var(--line);border-radius:12px;background:#050505;overflow:hidden;touch-action:none}
+.hotspot-picker img{display:block;width:100%;max-height:360px;object-fit:contain;background:#050505}
+.admin-marker{position:absolute;border:2px solid var(--gold);background:rgba(213,173,98,.22);border-radius:50%;transform:translate(-50%,-50%);min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:900;text-shadow:0 1px 2px #000}
+.admin-marker.selected{box-shadow:0 0 0 3px rgba(255,255,255,.25),0 0 18px rgba(213,173,98,.55)}
+.range-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-top:8px}
+.range-row input{margin-top:0}
+.inline-select{margin-top:8px}
+.drag-note{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="header hidden" id="topbar"><div class="header-inner"><div><div class="stage-label" id="stageLabel">第1問</div><div class="small" id="headerTitle">ギルドの密書</div></div><div class="timer" id="timer">60:00</div></div></div>
+
+<div class="wrap">
+<section class="card" id="start">
+<h1 class="title" id="startTitle">ギルドの密書</h1><p class="sub" id="startSub"></p><hr>
+<div id="startStory"></div>
+<div class="document-box"><div class="document-title">ギルド宛 機密文書</div><div id="startDocument"></div><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div><div class="progress-text">解析率 0%</div></div>
+<div class="notice"><strong>注意</strong><br>開始するとタイマーが進みます。制限時間を過ぎると強制終了します。</div>
+<button onclick="startQuest()">解読を開始する</button><button class="secondary" onclick="openAdmin()">管理・編集</button>
+</section>
+
+<section class="card hidden" id="stage">
+<div class="tag" id="difficulty"></div><h2 class="title" id="stageTitle"></h2>
+<div id="stageImage"></div><div id="stageBody"></div>
+<input id="answer" autocomplete="off" placeholder="答えを入力">
+<button onclick="checkAnswer()">解答する</button><button class="secondary" onclick="showHint()">ヒントを見る</button>
+<div id="hintArea"></div><div id="message" class="notice hidden"></div>
+</section>
+
+<section class="card hidden" id="docProgress">
+<h1 class="title" id="progressTitle">封印解除</h1><p class="sub" id="progressSub"></p>
+<div class="document-box flash"><div class="document-title">ギルド宛 機密文書</div><div id="progressDocument"></div><div class="progress-wrap"><div class="progress-bar" id="docBar"></div></div><div class="progress-text" id="docPercent"></div></div>
+<button onclick="nextAfterProgress()">次へ進む</button>
+</section>
+
+<section class="card hidden" id="clear">
+<h1 class="title">最終封印解除</h1><p class="sub">機密文書の完全解析を開始します。</p>
+<div class="document-box" id="finalDocBox"><div class="document-title">ギルド宛 機密文書</div><div id="finalDocument"></div><div class="progress-wrap"><div class="progress-bar" id="finalBar"></div></div><div class="progress-text" id="finalPercent">解析率 75%</div></div>
+<button onclick="startFinalReveal()" id="finalRevealBtn">完全解析を実行する</button>
+<div id="presentArea" class="hidden"><button onclick="showCertificate()">ギルドマスターへ提示する</button></div>
+</section>
+
+<section class="card hidden" id="certificate">
+<div class="cert"><div class="big">認証済</div><p>限定メニュー解放</p><hr><p>合言葉</p><div class="codeword" id="certCodeword"></div><p class="small">認証番号</p><div id="certNo" class="small"></div></div>
+<button onclick="location.reload()">最初に戻る</button>
+</section>
+
+<section class="card hidden" id="gameover"><h1 class="title">時間切れ</h1><p>制限時間を超えました。</p><button onclick="location.reload()">最初に戻る</button></section>
+
+<section class="card hidden" id="admin">
+<h1 class="title">管理・編集</h1><p class="sub">問題追加、画像タップ切替、画像/BGM/SEアップロード対応。</p>
+<label>タイトル</label><input id="adminTitle"><label>開始画面の説明</label><textarea id="adminIntro"></textarea>
+<label>制限時間（分）</label><input id="adminMinutes" type="number" min="1"><label>合言葉</label><input id="adminCodeword"><label>管理画面パスワード</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="管理画面を開く時のパスワード"><div class="notice small">管理・編集を開くたびに、このパスワード入力が必要になります。初期パスワードは OTAKU です。</div>
+<label>解読後の機密文書（合言葉は {{codeword}}）</label><textarea id="adminPlainDoc"></textarea>
+<label>画像同期スクリプトURL（Google Apps Script）</label><input id="assetSyncUrl" placeholder="https://script.google.com/macros/s/.../exec">
+<div class="notice small">ここにGASのWebアプリURLを入れると、画像追加時にDriveへ送信し、他端末でも同じ画像IDを読み込めます。</div>
+<label><input id="autoUploadImages" type="checkbox"> 画像追加時にDriveへアップロードする</label>
+<div class="admin-tools"><button class="secondary" onclick="saveAssetSyncSettings()">画像同期設定を保存</button><button class="secondary" onclick="syncRemoteAssets(true)">アップ済み画像を反映</button></div>
+<label>BGMアップロード（複数可・ランダム再生）</label>
+<div class="image-control">
+  <div class="file-note">iPhoneの「ファイル」からMP3/M4A/WAVなどを選択できます。反応しない場合でも、この大きいボタンを押してください。</div>
+  <label class="file-picker">BGMファイルを追加
+    <input id="bgmFiles" type="file" multiple onchange="uploadBgmFiles(this)">
+  </label>
+</div>
+<div id="bgmList" class="notice small"></div>
+<div id="mediaStatus" class="notice small hidden"></div>
+<button class="secondary" onclick="clearBgm()">BGMを削除</button>
+<label>文書画像 0% / 25% / 50% / 75% / 100%（任意）</label>
+<div class="notice small">URL入力は使わず、画像追加ボタンから写真またはファイルを選択してください。保存時はBase64としてJSONに含まれます。</div>
+<div id="adminDocImages"></div>
+<label>効果音アップロード（複数可）</label>
+<div class="image-control">
+  <div class="file-note">iPhoneの「ファイル」からMP3/M4A/WAVなどを選択できます。</div>
+  <label class="file-picker">効果音ファイルを追加
+    <input id="seFiles" type="file" multiple onchange="uploadSeFiles(this)">
+  </label>
+</div>
+<div id="seList" class="notice small"></div>
+<div id="seControls"></div>
+<button class="secondary" onclick="clearSe()">効果音を削除</button>
+<div id="adminPuzzles"></div>
+<button onclick="addPuzzle()">問題を追加</button><button onclick="saveAdmin()">保存する</button>
+<button class="secondary" onclick="exportData()">データを書き出す</button><pre id="exportBox" class="export hidden"></pre>
+<label>データ読み込み（書き出したJSONを貼る）</label><textarea id="importBox"></textarea>
+<button class="secondary" onclick="importData()">読み込む</button><button class="danger" onclick="resetData()">初期データに戻す</button><button class="secondary" onclick="location.reload()">戻る</button>
+</section>
+</div>
+
+<div id="imgModal" class="overlay hidden" onclick="closeImgModal()"><button class="close-x" onclick="closeImgModal()">閉じる</button><img id="modalImg" class="modal-img"></div>
+
+<audio id="bgm" loop></audio>
+
+<script>
+const STORAGE_KEY="guild_secret_ex_v2";
+const BUILTIN_BGM=[{"id":"builtin_bgm_01","name":"maou_bgm_8bit01.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit01.mp3","size":1624986,"builtin":true,"external":true},{"id":"builtin_bgm_02","name":"maou_bgm_8bit02.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit02.mp3","size":1260108,"builtin":true,"external":true},{"id":"builtin_bgm_03","name":"maou_bgm_8bit03.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit03.mp3","size":1644822,"builtin":true,"external":true},{"id":"builtin_bgm_04","name":"maou_bgm_8bit04.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit04.mp3","size":1640124,"builtin":true,"external":true},{"id":"builtin_bgm_05","name":"maou_bgm_8bit05.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit05.mp3","size":2205972,"builtin":true,"external":true},{"id":"builtin_bgm_06","name":"maou_bgm_8bit06.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit06.mp3","size":2061900,"builtin":true,"external":true},{"id":"builtin_bgm_07","name":"maou_bgm_8bit07.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit07.mp3","size":2065554,"builtin":true,"external":true},{"id":"builtin_bgm_08","name":"maou_bgm_8bit08.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit08.mp3","size":1877634,"builtin":true,"external":true},{"id":"builtin_bgm_09","name":"maou_bgm_8bit09.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit09.mp3","size":2870478,"builtin":true,"external":true},{"id":"builtin_bgm_10","name":"maou_bgm_8bit10.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit10.mp3","size":2587032,"builtin":true,"external":true},{"id":"builtin_bgm_11","name":"maou_bgm_8bit11.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit11.mp3","size":3161754,"builtin":true,"external":true},{"id":"builtin_bgm_12","name":"maou_bgm_8bit12.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit12.mp3","size":3579354,"builtin":true,"external":true},{"id":"builtin_bgm_13","name":"maou_bgm_8bit13.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit13.mp3","size":3880548,"builtin":true,"external":true},{"id":"builtin_bgm_14","name":"maou_bgm_8bit14.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit14.mp3","size":2683080,"builtin":true,"external":true},{"id":"builtin_bgm_15","name":"maou_bgm_8bit15.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit15.mp3","size":1231920,"builtin":true,"external":true},{"id":"builtin_bgm_16","name":"maou_bgm_8bit16.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit16.mp3","size":1435500,"builtin":true,"external":true},{"id":"builtin_bgm_17","name":"maou_bgm_8bit17.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit17.mp3","size":2223720,"builtin":true,"external":true},{"id":"builtin_bgm_18","name":"maou_bgm_8bit18.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit18.mp3","size":2525958,"builtin":true,"external":true},{"id":"builtin_bgm_19","name":"maou_bgm_8bit19.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit19.mp3","size":2189268,"builtin":true,"external":true},{"id":"builtin_bgm_20","name":"maou_bgm_8bit20.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit20.mp3","size":1723644,"builtin":true,"external":true},{"id":"builtin_bgm_21","name":"maou_bgm_8bit21.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit21.mp3","size":927072,"builtin":true,"external":true},{"id":"builtin_bgm_22","name":"maou_bgm_8bit22.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit22.mp3","size":5251842,"builtin":true,"external":true},{"id":"builtin_bgm_23","name":"maou_bgm_8bit23.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit23.mp3","size":6220152,"builtin":true,"external":true},{"id":"builtin_bgm_24","name":"maou_bgm_8bit24.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit24.mp3","size":6608520,"builtin":true,"external":true},{"id":"builtin_bgm_25","name":"maou_bgm_8bit25.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit25.mp3","size":1809774,"builtin":true,"external":true},{"id":"builtin_bgm_26","name":"maou_bgm_8bit26.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit26.mp3","size":6197184,"builtin":true,"external":true},{"id":"builtin_bgm_27","name":"maou_bgm_8bit27.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit27.mp3","size":948474,"builtin":true,"external":true},{"id":"builtin_bgm_28","name":"maou_bgm_8bit28.mp3","type":"audio/mpeg","data":"bgm/maou_bgm_8bit28.mp3","size":1215216,"builtin":true,"external":true}];
+const BUILTIN_SE=[{"id":"builtin_se_01","name":"maou_se_effect06.mp3","type":"audio/mpeg","data":"se/maou_se_effect06.mp3","size":102312,"builtin":true,"external":true},{"id":"builtin_se_02","name":"maou_se_effect08.mp3","type":"audio/mpeg","data":"se/maou_se_effect08.mp3","size":174870,"builtin":true,"external":true},{"id":"builtin_se_03","name":"maou_se_effect09.mp3","type":"audio/mpeg","data":"se/maou_se_effect09.mp3","size":178524,"builtin":true,"external":true},{"id":"builtin_se_04","name":"maou_se_effect10.mp3","type":"audio/mpeg","data":"se/maou_se_effect10.mp3","size":182700,"builtin":true,"external":true},{"id":"builtin_se_05","name":"maou_se_effect11.mp3","type":"audio/mpeg","data":"se/maou_se_effect11.mp3","size":92916,"builtin":true,"external":true},{"id":"builtin_se_06","name":"maou_se_system01.mp3","type":"audio/mpeg","data":"se/maou_se_system01.mp3","size":19836,"builtin":true,"external":true},{"id":"builtin_se_07","name":"maou_se_system02.mp3","type":"audio/mpeg","data":"se/maou_se_system02.mp3","size":23490,"builtin":true,"external":true},{"id":"builtin_se_08","name":"maou_se_system03.mp3","type":"audio/mpeg","data":"se/maou_se_system03.mp3","size":19314,"builtin":true,"external":true},{"id":"builtin_se_09","name":"maou_se_system04.mp3","type":"audio/mpeg","data":"se/maou_se_system04.mp3","size":15660,"builtin":true,"external":true},{"id":"builtin_se_10","name":"maou_se_system05.mp3","type":"audio/mpeg","data":"se/maou_se_system05.mp3","size":13572,"builtin":true,"external":true},{"id":"builtin_se_11","name":"maou_se_system10.mp3","type":"audio/mpeg","data":"se/maou_se_system10.mp3","size":9918,"builtin":true,"external":true},{"id":"builtin_se_12","name":"maou_se_system13.mp3","type":"audio/mpeg","data":"se/maou_se_system13.mp3","size":9396,"builtin":true,"external":true},{"id":"builtin_se_13","name":"maou_se_system16.mp3","type":"audio/mpeg","data":"se/maou_se_system16.mp3","size":9396,"builtin":true,"external":true},{"id":"builtin_se_14","name":"maou_se_system18.mp3","type":"audio/mpeg","data":"se/maou_se_system18.mp3","size":5742,"builtin":true,"external":true},{"id":"builtin_se_15","name":"maou_se_system24.mp3","type":"audio/mpeg","data":"se/maou_se_system24.mp3","size":6786,"builtin":true,"external":true},{"id":"builtin_se_16","name":"maou_se_system25.mp3","type":"audio/mpeg","data":"se/maou_se_system25.mp3","size":5742,"builtin":true,"external":true}];
+const DEFAULT_DATA={
+title:"ギルドの密書",minutes:60,codeword:"おたく場",adminPassword:"OTAKU",
+intro:"ギルド宛に、差出人不明の機密文書が届きました。\\n4つの試練を突破し、最後の合言葉を解読してください。",
+plainDoc:"━━━━━━━━━━━━━━\\n\\nギルド宛 機密文書\\n\\nこの文書を解読した者は、\\nギルドの試練を突破した者と認める。\\n\\n合言葉\\n\\n『{{codeword}}』\\n\\nこの画面を\\nギルドマスターへ提示せよ。\\n\\n━━━━━━━━━━━━━━",
+assetSyncUrl:"",autoUploadImages:false,docImages:{"0":"","25":"","50":"","75":"","100":""},bgmTracks:[],seTracks:[],eventSe:{tap:"builtin_se_01",correct:"builtin_se_04",wrong:"builtin_se_03",analysis:"builtin_se_13",clear:"builtin_se_12"},
+puzzles:[samplePuzzle(1),samplePuzzle(2),samplePuzzle(3),samplePuzzle(4)]
+};
+function samplePuzzle(n){return{title:["第1問 はじめての依頼","第2問 解散したパーティーの伝言","第3問 紛れ込んだ偽物","第4問 最深部の扉"][n-1]||`第${n}問`,difficulty:["かんたん","ふつう","むずい","めちゃむず"][Math.min(n-1,3)],body:"問題文をここに入力。\\n画像タップで切り替えたい場合は、画像とタップ地点を管理画面で設定。",image:"",answers:["答え"],hints:["見る場所を変えてみよう。"],clearTitle:`第${n}封印解除`,clearText:"機密文書の解析が進行しました。",wrongTapMessage:"違うようだ…",bgmId:"",hotspots:[]}}
+let data=loadData(),current=0,hintCount=0,imgIndex=0,timerId=null,totalTime=data.minutes*60,left=totalTime,certNo="",playlist=[];
+const REMOTE_IMAGES={};
+function loadData(){try{let raw=localStorage.getItem(STORAGE_KEY);if(raw)return migrateData(JSON.parse(raw))}catch(e){}return migrateData(JSON.parse(JSON.stringify(DEFAULT_DATA)))}
+function migrateData(obj){
+  obj.adminPassword=obj.adminPassword||"OTAKU";
+  obj.assetSyncUrl=obj.assetSyncUrl||"";
+  obj.autoUploadImages=!!obj.autoUploadImages;
+  obj.docImages=obj.docImages||{"0":"","25":"","50":"","75":"","100":""};
+  const userBgm=(obj.bgmTracks||[]).filter(t=>!(t&&t.builtin)&&!(t&&String(t.id||"").startsWith("builtin_bgm_"))).map((t,i)=>({id:t.id||("bgm_"+Date.now()+"_"+i+"_"+Math.random().toString(16).slice(2)),name:t.name||("BGM"+(i+1)),type:t.type||"audio/mpeg",data:t.data||t,size:t.size||0}));
+  const userSe=(obj.seTracks||[]).filter(t=>!(t&&t.builtin)&&!(t&&String(t.id||"").startsWith("builtin_se_"))).map((t,i)=>({id:t.id||("se_"+Date.now()+"_"+i+"_"+Math.random().toString(16).slice(2)),name:t.name||("SE"+(i+1)),type:t.type||"audio/mpeg",data:t.data||t,size:t.size||0}));
+  obj.bgmTracks=[...BUILTIN_BGM,...userBgm];
+  obj.seTracks=[...BUILTIN_SE,...userSe];
+  obj.eventSe={tap:"builtin_se_01",correct:"builtin_se_04",wrong:"builtin_se_03",analysis:"builtin_se_13",clear:"builtin_se_12",...(obj.eventSe||{})};
+  obj.puzzles=(obj.puzzles&&obj.puzzles.length?obj.puzzles:[samplePuzzle(1)]).map((p,i)=>({
+    ...samplePuzzle(i+1),...p,answers:p.answers||["答え"],hints:p.hints||[],hotspots:(p.hotspots||[]).map((h,j)=>({fromIndex:0,x:50,y:50,size:14,toImage:"",toIndex:j+1,message:"",effect:"",vibrate:false,seId:"",bgmId:"",...h})),wrongTapMessage:p.wrongTapMessage||"違うようだ…",bgmId:p.bgmId||""
+  }));
+  return obj;
+}
+function storageData(){
+  const copy=JSON.parse(JSON.stringify(data));
+  copy.bgmTracks=(copy.bgmTracks||[]).filter(t=>!t.builtin&&!String(t.id||"").startsWith("builtin_bgm_"));
+  copy.seTracks=(copy.seTracks||[]).filter(t=>!t.builtin&&!String(t.id||"").startsWith("builtin_se_"));
+  return copy;
+}
+function saveData(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(storageData()));
+    return true;
+  }catch(e){
+    console.error(e);
+    return false;
+  }
+}
+
+function isGasRef(ref){return typeof ref==="string"&&ref.startsWith("gas:")}
+function gasId(ref){return isGasRef(ref)?ref.slice(4):""}
+function assetSrc(ref){
+  if(!ref)return "";
+  if(isGasRef(ref)){
+    const item=REMOTE_IMAGES[gasId(ref)];
+    return item&&item.data?item.data:"";
+  }
+  return ref;
+}
+function makeAssetId(prefix,name){
+  const safe=(name||"image").toLowerCase().replace(/[^a-z0-9ぁ-んァ-ン一-龥_-]+/gi,"_").slice(0,36);
+  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}_${safe}`;
+}
+function syncRemoteAssets(showAlert){
+  const url=(data.assetSyncUrl||"").trim();
+  if(!url){if(showAlert)alert("先に画像同期スクリプトURLを入れて保存してください。仕方ない、まず住所が必要だ。");return;}
+  const cb="guildAssetCb_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+  window[cb]=payload=>{
+    try{
+      const imgs=(payload&&payload.images)||[];
+      imgs.forEach(x=>{if(x&&x.id&&x.data)REMOTE_IMAGES[x.id]=x});
+      if(showAlert)alert(`アップ済み画像を${imgs.length}件反映しました。`);
+      refreshAssetPreviews();
+    }finally{
+      delete window[cb];
+      if(script&&script.parentNode)script.parentNode.removeChild(script);
+    }
+  };
+  const script=document.createElement("script");
+  script.onerror=()=>{delete window[cb];if(showAlert)alert("画像一覧の取得に失敗しました。GASの公開設定を確認してください。");};
+  script.src=url+(url.includes("?")?"&":"?")+"action=manifest&callback="+encodeURIComponent(cb)+"&t="+Date.now();
+  document.body.appendChild(script);
+}
+function refreshAssetPreviews(){
+  init();
+  if(!document.getElementById("admin").classList.contains("hidden")){
+    renderDocImageEditors();renderAdminPuzzles();
+  }
+}
+function saveAssetSyncSettings(){
+  data.assetSyncUrl=(document.getElementById("assetSyncUrl")&&document.getElementById("assetSyncUrl").value.trim())||"";
+  data.autoUploadImages=!!(document.getElementById("autoUploadImages")&&document.getElementById("autoUploadImages").checked);
+  saveData();
+  alert("画像同期設定を保存しました。");
+}
+function postImageAssetToGas(id,name,type,dataUrl){
+  const url=(data.assetSyncUrl||"").trim();
+  if(!url)return;
+  try{
+    const fd=new FormData();
+    fd.append("action","upload");fd.append("kind","image");fd.append("id",id);fd.append("name",name||id);fd.append("type",type||"image/jpeg");fd.append("data",dataUrl);
+    fetch(url,{method:"POST",body:fd,mode:"no-cors"}).then(()=>setMediaStatus("画像をDriveへ送信しました。別端末では『アップ済み画像を反映』で読み込めます。"));
+  }catch(e){console.error(e);setMediaStatus("画像のDrive送信に失敗しました。ローカル画像としては反映済みです。");}
+}
+async function imageFileToDataURL(file){
+  const raw=await fileToDataURL(file);
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const max=1600;let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+        const r=Math.min(1,max/Math.max(w,h));w=Math.round(w*r);h=Math.round(h*r);
+        const c=document.createElement("canvas");c.width=w;c.height=h;
+        const ctx=c.getContext("2d");ctx.drawImage(img,0,0,w,h);
+        resolve(c.toDataURL("image/jpeg",0.84));
+      }catch(e){resolve(raw)}
+    };
+    img.onerror=()=>resolve(raw);
+    img.src=raw;
+  });
+}
+async function imageRefFromFile(file,prefix){
+  const dataUrl=await imageFileToDataURL(file);
+  if(data.assetSyncUrl&&data.autoUploadImages){
+    const id=makeAssetId(prefix,file.name||"image");
+    REMOTE_IMAGES[id]={id,name:file.name||id,type:"image/jpeg",data:dataUrl,updatedAt:new Date().toISOString()};
+    postImageAssetToGas(id,file.name||id,"image/jpeg",dataUrl);
+    return "gas:"+id;
+  }
+  return dataUrl;
+}
+
+function esc(s){return (s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+function nl2br(s){return esc(s).replace(/\n/g,"<br>")}
+function normalize(s){return (s||"").toString().trim().toLowerCase().replace(/[Ａ-Ｚａ-ｚ０-９]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0)).replace(/[ぁ-ん]/g,ch=>String.fromCharCode(ch.charCodeAt(0)+0x60)).replace(/\s+/g,"")}
+function fullDoc(){return (data.plainDoc||"").replaceAll("{{codeword}}",data.codeword||"")}
+function isWordChar(ch){return /[ぁ-んァ-ン一-龥A-Za-z0-9]/.test(ch)}
+function makeCipher(text){const cs=["■","□","◆","◇","△","▲","○","●","※","✦"];let out="";for(const ch of text){if(ch=="\n"||ch==" "||ch=="　"||"━━━━━━━━━━━━━━「」『』。、".includes(ch))out+=ch;else if(isWordChar(ch))out+=cs[Math.floor(Math.random()*cs.length)];else out+=ch}return out}
+function revealByRate(text,rate){const code=data.codeword||"";let out="",cs=["■","□","◆","◇","△","▲","○","●","※"],count=0;for(let i=0;i<text.length;i++){let ch=text[i];if(code&&text.slice(i,i+code.length)===code){out+=cs[count%cs.length].repeat(code.length);i+=code.length-1;continue}if(ch=="\n"||ch==" "||ch=="　"||"━━━━━━━━━━━━━━「」『』。、".includes(ch)){out+=ch;continue}if(isWordChar(ch)){count++;out+=(count%100)<rate?ch:cs[count%cs.length]}else out+=ch}return out}
+function showDoc(id,rate){let img=(data.docImages||{})[String(rate)],el=document.getElementById(id);if(img){let src=assetSrc(img);el.innerHTML=src?`<img class="doc-img" src="${esc(src)}" onclick="openImgModal('${esc(img)}')">`:`<div class="notice small">画像データ同期待ちです。管理画面で「アップ済み画像を反映」を押してください。</div>`;return}el.textContent=rate===0?makeCipher(fullDoc()):(rate<100?revealByRate(fullDoc(),rate):fullDoc())}
+function showOnly(id){["start","stage","docProgress","clear","certificate","gameover","admin"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden")}
+function drawTimer(){let m=Math.floor(left/60),s=left%60;document.getElementById("timer").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")}
+function init(){document.getElementById("startTitle").textContent=data.title;document.getElementById("headerTitle").textContent=data.title;document.getElementById("startSub").textContent=`制限時間${data.minutes}分 / 機密文書解読クエスト`;document.getElementById("startStory").innerHTML=nl2br(data.intro);showDoc("startDocument",0)}
+function startQuest(){totalTime=data.minutes*60;left=totalTime;current=0;certNo="#"+Math.floor(100000+Math.random()*900000);startBgm();document.getElementById("topbar").classList.remove("hidden");showOnly("stage");loadStage();drawTimer();timerId=setInterval(()=>{left--;drawTimer();if(left<=0){clearInterval(timerId);document.getElementById("topbar").classList.add("hidden");showOnly("gameover")}},1000)}
+function loadStage(){hintCount=0;imgIndex=0;document.getElementById("answer").value="";document.getElementById("hintArea").innerHTML="";document.getElementById("message").classList.add("hidden");let p=data.puzzles[current];if(p.bgmId)setBgmById(p.bgmId);document.getElementById("stageLabel").textContent=`第${current+1}問`;document.getElementById("difficulty").textContent=p.difficulty||"";document.getElementById("stageTitle").textContent=p.title||"";document.getElementById("stageBody").innerHTML='<div class="puzzle-box">'+nl2br(p.body||"")+'</div>';renderPuzzleImage()}
+function renderPuzzleImage(){let p=data.puzzles[current];let img=currentImage(p);let box=document.getElementById("stageImage");let src=assetSrc(img);if(!img||!src){box.innerHTML=img?`<div class="notice small">画像データ同期待ちです。</div>`:"";return}let hs=(p.hotspots||[]).filter(h=>(h.fromIndex||0)===imgIndex);box.innerHTML=`<div class="img-wrap"><img class="problem-img" src="${esc(src)}" onclick="handleImageMiss(event)">${hs.map((h,i)=>`<button class="hotspot" style="left:${h.x}%;top:${h.y}%;width:${h.size||14}%;height:${h.size||14}%;" onclick="event.stopPropagation();tapHotspot(${i})" aria-label="調べる"></button>`).join("")}</div><button class="secondary" onclick="openImgModal('${esc(img)}')">画像を大きく見る</button>`}
+function currentImage(p){if(imgIndex===0)return p.image||"";let found=(p.hotspots||[]).find(h=>h.toIndex===imgIndex&&h.toImage);return found?found.toImage:(p.image||"")}
+function handleImageMiss(ev){let p=data.puzzles[current];let hs=(p.hotspots||[]).filter(h=>(h.fromIndex||0)===imgIndex);if(!hs.length){openImgModal(ev.target.src);return}playSe("wrong");if(navigator.vibrate)navigator.vibrate(45);setMsg(p.wrongTapMessage||"違うようだ…","error")}
+function tapHotspot(localIdx){let p=data.puzzles[current];let list=(p.hotspots||[]).filter(h=>(h.fromIndex||0)===imgIndex);let h=list[localIdx];if(!h)return;playSe(h.seId?null:"tap",h.seId);if(h.vibrate&&navigator.vibrate)navigator.vibrate([45,35,45]);if(h.bgmId)setBgmById(h.bgmId);if(h.effect)runEffect(h.effect);if(h.message)setMsg(h.message,"ok");if(h.toImage){imgIndex=h.toIndex||imgIndex+1;renderPuzzleImage()}}
+function runEffect(name){let el=document.getElementById("stage");if(name==="shake"){el.animate([{transform:"translateX(0)"},{transform:"translateX(-7px)"},{transform:"translateX(7px)"},{transform:"translateX(0)"}],{duration:360});return}if(name==="fade"){el.animate([{opacity:.25},{opacity:1}],{duration:450});return}if(name==="dark"){document.body.animate([{filter:"brightness(1)"},{filter:"brightness(.15)"},{filter:"brightness(1)"}],{duration:650});return}}
+function setMsg(txt,cls=""){let el=document.getElementById("message");el.className="notice "+cls;el.innerHTML=txt;el.classList.remove("hidden")}
+function showHint(){let hints=data.puzzles[current].hints||[];if(hintCount<hints.length){let d=document.createElement("div");d.className="hint";d.innerHTML="<strong>ヒント</strong><br>"+nl2br(hints[hintCount]);document.getElementById("hintArea").appendChild(d);hintCount++}else setMsg("これ以上のヒントはありません。","error")}
+function checkAnswer(){let a=normalize(document.getElementById("answer").value),p=data.puzzles[current];if((p.answers||[]).map(normalize).includes(a)){playSe("correct");current===data.puzzles.length-1?showFinal():showProgress(current)}else{playSe("wrong");setMsg("不正解です。","error")}}
+function showProgress(idx){playSe("analysis");let p=data.puzzles[idx],rate=Math.round(((idx+1)/data.puzzles.length)*100);document.getElementById("progressTitle").textContent=p.clearTitle||`第${idx+1}封印解除`;document.getElementById("progressSub").textContent=p.clearText||"機密文書の解析が進行しています。";showDoc("progressDocument",rate);document.getElementById("docBar").style.width=rate+"%";document.getElementById("docPercent").textContent="解析率 "+rate+"%";showOnly("docProgress")}
+function nextAfterProgress(){current++;showOnly("stage");loadStage()}
+function showFinal(){clearInterval(timerId);document.getElementById("topbar").classList.add("hidden");showDoc("finalDocument",75);document.getElementById("finalBar").style.width="75%";document.getElementById("finalPercent").textContent="解析率 75%";document.getElementById("finalRevealBtn").classList.remove("hidden");document.getElementById("presentArea").classList.add("hidden");showOnly("clear")}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+async function startFinalReveal(){playSe("analysis");document.getElementById("finalRevealBtn").classList.add("hidden");for(const r of [76,81,88,94,99,100]){document.getElementById("finalBar").style.width=r+"%";document.getElementById("finalPercent").textContent="解析率 "+r+"%";await wait(330)}await revealCodeword()}
+async function revealCodeword(){let text=fullDoc(),code=data.codeword||"",target=document.getElementById("finalDocument");if(!code){target.textContent=text;document.getElementById("presentArea").classList.remove("hidden");return}target.textContent=text.replace(code,"■".repeat(code.length));await wait(600);for(let i=1;i<=code.length;i++){target.textContent=text.replace(code,code.slice(0,i)+"■".repeat(code.length-i));await wait(420)}target.textContent=text;document.getElementById("finalDocBox").classList.add("flash");document.getElementById("presentArea").classList.remove("hidden")}
+function showCertificate(){playSe("clear");document.getElementById("certCodeword").textContent="『"+(data.codeword||"")+"』";document.getElementById("certNo").textContent=certNo;showOnly("certificate")}
+function openImgModal(src){document.getElementById("modalImg").src=assetSrc(src)||src;document.getElementById("imgModal").classList.remove("hidden")}
+function closeImgModal(){document.getElementById("imgModal").classList.add("hidden")}
+function startBgm(){let audio=document.getElementById("bgm");if(!data.bgmTracks||!data.bgmTracks.length)return;playlist=[...data.bgmTracks].sort(()=>Math.random()-0.5);playNextBgm();audio.onended=playNextBgm}
+function playNextBgm(){let audio=document.getElementById("bgm");if(!playlist.length)playlist=[...data.bgmTracks].sort(()=>Math.random()-0.5);let t=playlist.shift();if(!t)return;audio.src=t.data;audio.loop=false;audio.volume=.55;audio.play().catch(()=>{})}
+function setBgmById(id){const t=(data.bgmTracks||[]).find(x=>x.id===id||x.name===id);if(!t)return;let audio=document.getElementById("bgm");audio.src=t.data;audio.loop=true;audio.volume=.55;audio.play().catch(()=>{})}
+function bgmOptions(selected=""){return `<option value="">ランダム/変更なし</option>${(data.bgmTracks||[]).map(t=>`<option value="${esc(t.id)}" ${selected===t.id?'selected':''}>${esc(t.name)}</option>`).join("")}`}
+function seOptions(selected=""){return `<option value="">共通設定</option>${(data.seTracks||[]).map(t=>`<option value="${esc(t.id)}" ${selected===t.id?'selected':''}>${esc(t.name)}</option>`).join("")}`}
+
+function playSe(eventName, directId){
+  const id=directId||(eventName&&data.eventSe&&data.eventSe[eventName]);
+  if(!id||!data.seTracks)return;
+  const t=data.seTracks.find(x=>x.id===id||x.name===id);
+  if(!t)return;
+  const a=new Audio(t.data);a.volume=.75;a.play().catch(()=>{});
+}
+function renderSeList(){
+  const el=document.getElementById("seList");if(!el)return;
+  el.textContent=(data.seTracks||[]).length?`登録SE: ${data.seTracks.map(x=>x.name).join(" / ")}`:"効果音未登録";
+}
+function renderSeControls(){
+  const box=document.getElementById("seControls");if(!box)return;
+  data.seTracks=data.seTracks||[];data.eventSe=data.eventSe||{tap:"",correct:"",wrong:"",analysis:"",clear:""};
+  const events=[['tap','タップ'],['correct','正解'],['wrong','不正解'],['analysis','解析'],['clear','クリア']];
+  box.innerHTML=events.map(([key,label])=>`<label>${label}SE</label><select id="se_${key}" onchange="setEventSe('${key}',this.value)"><option value="">なし</option>${data.seTracks.map(t=>`<option value="${esc(t.id)}" ${data.eventSe[key]===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select>`).join('');
+}
+function setEventSe(key,val){data.eventSe=data.eventSe||{};data.eventSe[key]=val;saveData()}
+function clearSe(){data.seTracks=[...BUILTIN_SE];data.eventSe={tap:"builtin_se_01",correct:"builtin_se_04",wrong:"builtin_se_03",analysis:"builtin_se_13",clear:"builtin_se_12"};saveData();renderSeList();renderSeControls()}
+
+function openAdmin(){
+  const pass=prompt("管理画面パスワードを入力してください");
+  if(pass===null)return;
+  if(pass!==(data.adminPassword||"OTAKU")){alert("パスワードが違います");return}
+  showAdminEditor();
+}
+function showAdminEditor(){showOnly("admin");document.getElementById("adminTitle").value=data.title;document.getElementById("adminIntro").value=data.intro;document.getElementById("adminMinutes").value=data.minutes;document.getElementById("adminCodeword").value=data.codeword;document.getElementById("adminPassword").value=data.adminPassword||"OTAKU";document.getElementById("adminPlainDoc").value=data.plainDoc;document.getElementById("assetSyncUrl").value=data.assetSyncUrl||"";document.getElementById("autoUploadImages").checked=!!data.autoUploadImages;renderDocImageEditors();renderBgmList();renderSeList();renderSeControls();renderAdminPuzzles()}
+
+function setMediaStatus(html){
+  const el=document.getElementById("mediaStatus");
+  if(!el)return;
+  el.innerHTML=html;
+  el.classList.remove("hidden");
+}
+function fmtSize(bytes){
+  if(!bytes)return "";
+  if(bytes<1024*1024)return Math.round(bytes/1024)+"KB";
+  return (bytes/1024/1024).toFixed(1)+"MB";
+}
+function renderBgmList(){
+  const el=document.getElementById("bgmList");if(!el)return;
+  const tracks=data.bgmTracks||[];
+  if(!tracks.length){el.innerHTML="BGM未登録";return;}
+  el.innerHTML=`登録BGM: ${tracks.length}件<br>`+tracks.map((x,i)=>`<div class="media-row"><span>${esc(x.name||('BGM '+(i+1)))} ${x.size?'<small>('+fmtSize(x.size)+')</small>':''}</span><button type="button" class="mini-btn" onclick="testBgm('${esc(x.id)}')">試聴</button></div>`).join("");
+}
+function renderAdminPuzzles(){
+  let box=document.getElementById("adminPuzzles");box.innerHTML="";
+  data.puzzles.forEach((p,i)=>{
+    let div=document.createElement("div");div.className="admin-stage";
+    div.innerHTML=`<h3>第${i+1}問</h3>
+    <div class="admin-tools"><button class="secondary" onclick="movePuzzle(${i},-1)">上へ</button><button class="secondary" onclick="movePuzzle(${i},1)">下へ</button><button class="danger" onclick="deletePuzzle(${i})">削除</button></div>
+    <label>タイトル</label><input id="p_title_${i}" value="${esc(p.title||"")}">
+    <label>難易度</label><input id="p_diff_${i}" value="${esc(p.difficulty||"")}">
+    <label>この問題のBGM</label><select id="p_bgm_${i}" class="inline-select">${bgmOptions(p.bgmId||"")}</select>
+    <label>外れタップ時メッセージ</label><input id="p_wrong_${i}" value="${esc(p.wrongTapMessage||"違うようだ…")}">
+    <label>問題画像</label><div class="image-control"><input type="hidden" id="p_image_${i}" value="${esc(p.image||"")}"><div class="file-note">画像追加ボタンから選択。URL入力は使いません。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadPuzzleImage(${i},this)"></label><img id="p_preview_${i}" class="image-preview ${assetSrc(p.image)?"":"hidden"}" src="${esc(assetSrc(p.image)||"")}"><button type="button" class="secondary" onclick="removePuzzleImage(${i})">画像を削除</button></div>
+    <label>問題文</label><textarea id="p_body_${i}">${esc(p.body||"")}</textarea>
+    <label>答え（改行で複数）</label><textarea id="p_answers_${i}">${esc((p.answers||[]).join("\n"))}</textarea>
+    <label>ヒント（改行で複数）</label><textarea id="p_hints_${i}">${esc((p.hints||[]).join("\n"))}</textarea>
+    <label>正解後タイトル</label><input id="p_clearTitle_${i}" value="${esc(p.clearTitle||"")}">
+    <label>正解後メッセージ</label><textarea id="p_clearText_${i}">${esc(p.clearText||"")}</textarea>
+    <h4>画像タップ探索</h4>
+    <div class="notice small">画像を押すと選択中の○を移動できます。座標入力は不要です。○の大きさはスライダーで調整します。</div>
+    ${hotspotCanvas(i)}
+    <div id="hs_${i}">${(p.hotspots||[]).map((h,j)=>hotspotEditor(i,j,h)).join("")}</div>
+    <button class="secondary" onclick="addHotspot(${i})">タップ地点を追加</button>`;
+    box.appendChild(div);
+  });
+  setTimeout(()=>data.puzzles.forEach((_,i)=>drawAdminMarkers(i)),0);
+}
+function hotspotCanvas(i){
+  const p=data.puzzles[i];const img=assetSrc(p.image||"");
+  if(!img)return `<div class="notice small">先に問題画像を追加すると、ここで直接○を配置できます。</div>`;
+  return `<div class="hotspot-picker" id="picker_${i}" onclick="placeSelectedHotspot(event,${i})"><img src="${esc(img)}" alt="タップ地点編集"><div id="markers_${i}"></div></div><div class="drag-note">編集中のタップ地点を選んでから、画像上を指で押してください。</div>`;
+}
+function hotspotEditor(i,j,h){
+  return `<div class="admin-hotspot" id="hs_card_${i}_${j}" onclick="selectHotspot(${i},${j})"><strong>タップ地点 ${j+1}</strong>
+  <input type="hidden" id="hs_from_${i}_${j}" value="${h.fromIndex||0}"><input type="hidden" id="hs_x_${i}_${j}" value="${h.x||50}"><input type="hidden" id="hs_y_${i}_${j}" value="${h.y||50}">
+  <label>元画像番号</label><select id="hs_from_sel_${i}_${j}" onchange="document.getElementById('hs_from_${i}_${j}').value=this.value;drawAdminMarkers(${i})"><option value="0" ${(h.fromIndex||0)===0?'selected':''}>最初の画像</option>${(data.puzzles[i].hotspots||[]).map((x,k)=>x.toImage?`<option value="${x.toIndex||k+1}" ${(h.fromIndex||0)===(x.toIndex||k+1)?'selected':''}>切替画像 ${x.toIndex||k+1}</option>`:'').join('')}</select>
+  <label>判定サイズ</label><div class="range-row"><input id="hs_size_${i}_${j}" type="range" min="6" max="45" value="${h.size||14}" oninput="document.getElementById('hs_size_label_${i}_${j}').textContent=this.value+'%';drawAdminMarkers(${i})"><span id="hs_size_label_${i}_${j}">${h.size||14}%</span></div>
+  <label>押した後の画像</label><div class="image-control"><input type="hidden" id="hs_img_${i}_${j}" value="${esc(h.toImage||"")}"><div class="file-note">画像追加ボタンから選択。URL入力は使いません。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadHotspotImage(${i},${j},this)"></label><img id="hs_preview_${i}_${j}" class="image-preview ${assetSrc(h.toImage)?"":"hidden"}" src="${esc(assetSrc(h.toImage)||"")}"><button type="button" class="secondary" onclick="removeHotspotImage(${i},${j})">画像を削除</button></div>
+  <label>切替後の画像番号</label><select id="hs_to_${i}_${j}">${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${(h.toIndex||((h.fromIndex||0)+1))===n?'selected':''}>画像${n}</option>`).join('')}</select>
+  <label>メッセージ</label><input id="hs_msg_${i}_${j}" value="${esc(h.message||"")}">
+  <label>このタップだけのSE</label><select id="hs_se_${i}_${j}">${seOptions(h.seId||"")}</select>
+  <label>このタップでBGM変更</label><select id="hs_bgm_${i}_${j}">${bgmOptions(h.bgmId||"")}</select>
+  <label>演出</label><select id="hs_effect_${i}_${j}"><option value="" ${!h.effect?'selected':''}>なし</option><option value="fade" ${h.effect==='fade'?'selected':''}>フェード</option><option value="dark" ${h.effect==='dark'?'selected':''}>暗転</option><option value="shake" ${h.effect==='shake'?'selected':''}>画面シェイク</option></select>
+  <label><input id="hs_vib_${i}_${j}" type="checkbox" ${h.vibrate?'checked':''}> 振動させる</label>
+  <div class="admin-tools"><button class="secondary" onclick="event.stopPropagation();moveHotspot(${i},${j},-1)">上へ</button><button class="secondary" onclick="event.stopPropagation();moveHotspot(${i},${j},1)">下へ</button><button class="danger" onclick="event.stopPropagation();deleteHotspot(${i},${j})">この地点を削除</button></div></div>`;
+}
+function selectHotspot(i,j){window.selectedHotspot={i,j};drawAdminMarkers(i)}
+function placeSelectedHotspot(ev,i){
+  if(!window.selectedHotspot||window.selectedHotspot.i!==i){if((data.puzzles[i].hotspots||[]).length)window.selectedHotspot={i,j:0};else return}
+  const rect=ev.currentTarget.getBoundingClientRect();
+  const x=Math.max(0,Math.min(100,((ev.clientX-rect.left)/rect.width)*100));
+  const y=Math.max(0,Math.min(100,((ev.clientY-rect.top)/rect.height)*100));
+  const j=window.selectedHotspot.j;
+  const hx=document.getElementById(`hs_x_${i}_${j}`),hy=document.getElementById(`hs_y_${i}_${j}`);
+  if(hx&&hy){hx.value=x.toFixed(2);hy.value=y.toFixed(2)}
+  if(data.puzzles[i]&&data.puzzles[i].hotspots[j]){data.puzzles[i].hotspots[j].x=x;data.puzzles[i].hotspots[j].y=y;saveData()}
+  drawAdminMarkers(i);
+}
+function drawAdminMarkers(i){
+  const box=document.getElementById(`markers_${i}`);if(!box)return;
+  const p=data.puzzles[i];const sel=window.selectedHotspot&&window.selectedHotspot.i===i?window.selectedHotspot.j:-1;
+  box.innerHTML=(p.hotspots||[]).map((h,j)=>{
+    const x=parseFloat(val(`hs_x_${i}_${j}`,h.x||50)),y=parseFloat(val(`hs_y_${i}_${j}`,h.y||50)),size=parseFloat(val(`hs_size_${i}_${j}`,h.size||14));
+    const from=parseInt(val(`hs_from_${i}_${j}`,h.fromIndex||0),10);
+    return `<button type="button" class="admin-marker ${sel===j?'selected':''}" style="left:${x}%;top:${y}%;width:${size}%;height:${size}%;" onclick="event.stopPropagation();selectHotspot(${i},${j})">${j+1}<span class="small">:${from}</span></button>`
+  }).join('');
+}
+function movePuzzle(i,dir){saveAdminNoAlert();let ni=i+dir;if(ni<0||ni>=data.puzzles.length)return;[data.puzzles[i],data.puzzles[ni]]=[data.puzzles[ni],data.puzzles[i]];saveData();renderAdminPuzzles()}
+function moveHotspot(i,j,dir){saveAdminNoAlert();let arr=data.puzzles[i].hotspots||[];let nj=j+dir;if(nj<0||nj>=arr.length)return;[arr[j],arr[nj]]=[arr[nj],arr[j]];saveData();renderAdminPuzzles();selectHotspot(i,nj)}
+
+function renderDocImageEditors(){
+  const box=document.getElementById("adminDocImages");
+  if(!box)return;
+  data.docImages=data.docImages||{"0":"","25":"","50":"","75":"","100":""};
+  const labels={"0":"解析率0%","25":"解析率25%","50":"解析率50%","75":"解析率75%","100":"解析率100%"};
+  box.innerHTML=["0","25","50","75","100"].map(k=>`<div class="image-control"><strong>${labels[k]}</strong><div class="file-note">写真またはファイルから選択できます。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadDocImage('${k}',this)"></label><img id="doc_preview_${k}" class="image-preview ${assetSrc(data.docImages[k])?"":"hidden"}" src="${esc(assetSrc(data.docImages[k])||"")}"><button type="button" class="secondary" onclick="removeDocImage('${k}')">画像を削除</button></div>`).join("");
+}
+async function uploadDocImage(k,input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  data.docImages=data.docImages||{};
+  data.docImages[k]=await imageRefFromFile(file,"doc_"+k);
+  setPreview(`doc_preview_${k}`,assetSrc(data.docImages[k]));
+  saveData();
+  input.value="";
+}
+function removeDocImage(k){data.docImages=data.docImages||{};data.docImages[k]="";setPreview(`doc_preview_${k}`,"");saveData()}
+async function uploadPuzzleImage(i,input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  const url=await imageRefFromFile(file,"puzzle_"+i);
+  const hidden=document.getElementById(`p_image_${i}`);if(hidden)hidden.value=url;
+  if(data.puzzles[i])data.puzzles[i].image=url;
+  setPreview(`p_preview_${i}`,assetSrc(url));
+  saveData();
+  input.value="";
+}
+function removePuzzleImage(i){const hidden=document.getElementById(`p_image_${i}`);if(hidden)hidden.value="";if(data.puzzles[i])data.puzzles[i].image="";setPreview(`p_preview_${i}`,"");saveData()}
+async function uploadHotspotImage(i,j,input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  const url=await imageRefFromFile(file,"hotspot_"+i+"_"+j);
+  const hidden=document.getElementById(`hs_img_${i}_${j}`);if(hidden)hidden.value=url;
+  if(data.puzzles[i]&&data.puzzles[i].hotspots&&data.puzzles[i].hotspots[j])data.puzzles[i].hotspots[j].toImage=url;
+  setPreview(`hs_preview_${i}_${j}`,assetSrc(url));
+  saveData();
+  input.value="";
+}
+function removeHotspotImage(i,j){const hidden=document.getElementById(`hs_img_${i}_${j}`);if(hidden)hidden.value="";if(data.puzzles[i]&&data.puzzles[i].hotspots&&data.puzzles[i].hotspots[j])data.puzzles[i].hotspots[j].toImage="";setPreview(`hs_preview_${i}_${j}`,"");saveData()}
+function setPreview(id,src){const img=document.getElementById(id);if(!img)return;img.src=src||"";img.classList.toggle("hidden",!src)}
+
+function addPuzzle(){saveAdminNoAlert();data.puzzles.push(samplePuzzle(data.puzzles.length+1));saveData();renderAdminPuzzles()}
+function deletePuzzle(i){if(data.puzzles.length<=1)return alert("最低1問は必要です");if(confirm("削除しますか？")){saveAdminNoAlert();data.puzzles.splice(i,1);saveData();renderAdminPuzzles()}}
+function addHotspot(i){saveAdminNoAlert();data.puzzles[i].hotspots=data.puzzles[i].hotspots||[];data.puzzles[i].hotspots.push({fromIndex:0,x:50,y:50,size:14,toImage:"",toIndex:1,message:"何かが変化した。",effect:"",vibrate:false,seId:"",bgmId:""});saveData();renderAdminPuzzles();selectHotspot(i,data.puzzles[i].hotspots.length-1)}
+function deleteHotspot(i,j){saveAdminNoAlert();data.puzzles[i].hotspots.splice(j,1);saveData();renderAdminPuzzles()}
+function collectAdminData(){data.title=document.getElementById("adminTitle").value;data.intro=document.getElementById("adminIntro").value;data.minutes=parseInt(document.getElementById("adminMinutes").value||"60",10);data.codeword=document.getElementById("adminCodeword").value;data.adminPassword=(document.getElementById("adminPassword").value||"OTAKU").trim()||"OTAKU";data.plainDoc=document.getElementById("adminPlainDoc").value;data.assetSyncUrl=(document.getElementById("assetSyncUrl")&&document.getElementById("assetSyncUrl").value.trim())||"";data.autoUploadImages=!!(document.getElementById("autoUploadImages")&&document.getElementById("autoUploadImages").checked);data.docImages=data.docImages||{"0":"","25":"","50":"","75":"","100":""};data.puzzles=data.puzzles.map((p,i)=>{let hs=(p.hotspots||[]).map((h,j)=>({fromIndex:parseInt(val(`hs_from_${i}_${j}`,0),10),x:parseFloat(val(`hs_x_${i}_${j}`,50)),y:parseFloat(val(`hs_y_${i}_${j}`,50)),size:parseFloat(val(`hs_size_${i}_${j}`,14)),toImage:val(`hs_img_${i}_${j}`,""),toIndex:parseInt(val(`hs_to_${i}_${j}`,1),10),message:val(`hs_msg_${i}_${j}`,""),seId:val(`hs_se_${i}_${j}`,""),bgmId:val(`hs_bgm_${i}_${j}`,""),effect:val(`hs_effect_${i}_${j}`,""),vibrate:!!(document.getElementById(`hs_vib_${i}_${j}`)&&document.getElementById(`hs_vib_${i}_${j}`).checked)}));return{title:val(`p_title_${i}`,""),difficulty:val(`p_diff_${i}`,""),bgmId:val(`p_bgm_${i}`,""),wrongTapMessage:val(`p_wrong_${i}`,"違うようだ…"),image:val(`p_image_${i}`,""),body:val(`p_body_${i}`,""),answers:val(`p_answers_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),hints:val(`p_hints_${i}`,"").split("\n").map(x=>x.trim()).filter(Boolean),clearTitle:val(`p_clearTitle_${i}`,""),clearText:val(`p_clearText_${i}`,""),hotspots:hs}})}
+function saveAdminNoAlert(){collectAdminData();saveData();init()}
+function saveAdmin(){saveAdminNoAlert();alert("保存しました");renderAdminPuzzles()}
+function val(id,def){let e=document.getElementById(id);return e?e.value:def}
+function guessAudioMime(name,type){
+  const n=(name||"").toLowerCase();
+  if(type&&type.startsWith("audio/"))return type;
+  if(/\.m4a$|\.aac$|\.mp4$/.test(n))return "audio/mp4";
+  if(/\.wav$/.test(n))return "audio/wav";
+  if(/\.ogg$|\.oga$/.test(n))return "audio/ogg";
+  if(/\.flac$/.test(n))return "audio/flac";
+  if(/\.caf$/.test(n))return "audio/x-caf";
+  return "audio/mpeg";
+}
+function isClearlyNotAudioFile(file){
+  const name=(file&&file.name||"").toLowerCase();
+  const type=(file&&file.type||"").toLowerCase();
+  return type.startsWith("image/")||type.includes("zip")||/\.(zip|json|html|htm|txt|jpg|jpeg|png|gif|webp|heic|pdf)$/i.test(name);
+}
+async function uploadBgmFiles(input){
+  const files=[...(input.files||[])];
+  if(!files.length)return;
+  saveAdminNoAlert();
+  setMediaStatus("BGMを読み込み中…");
+  let added=0,skipped=[],failed=[];
+  data.bgmTracks=data.bgmTracks||[];
+  for(const f of files){
+    if(isClearlyNotAudioFile(f)){skipped.push(f.name);continue;}
+    try{
+      const dataUrl=await fileToAudioDataURL(f);
+      data.bgmTracks.push({id:"bgm_"+Date.now()+"_"+Math.random().toString(16).slice(2),name:f.name||("BGM "+(data.bgmTracks.length+1)),type:guessAudioMime(f.name,f.type),data:dataUrl,size:f.size||0});
+      added++;
+    }catch(e){
+      console.error(e);
+      failed.push(f.name||"名称不明");
+    }
+  }
+  const saved=saveData();
+  renderBgmList();
+  renderAdminPuzzles();
+  input.value="";
+  let msg=added?`BGMを${added}件追加しました。一覧と問題ごとのBGM選択に反映しました。`:"BGMは追加されませんでした。";
+  if(skipped.length)msg+="\n音声以外として読み飛ばし: "+skipped.join(" / ");
+  if(failed.length)msg+="\n読み込み失敗: "+failed.join(" / ");
+  if(!saved&&added){msg+="\n\n注意：iPhone/Safariの保存容量を超えたため、自動保存はできていません。ただし今の画面上には追加済みです。消す前に『データを書き出す』でJSON保存してください。BGMは1〜2曲ずつ追加するのがおすすめです。";}
+  setMediaStatus(msg.replace(/\n/g,"<br>"));
+  alert(msg);
+}
+async function uploadSeFiles(input){
+  const files=[...(input.files||[])];
+  if(!files.length)return;
+  saveAdminNoAlert();
+  setMediaStatus("SEを読み込み中…");
+  let added=0,skipped=[],failed=[];
+  data.seTracks=data.seTracks||[];
+  for(const f of files){
+    if(isClearlyNotAudioFile(f)){skipped.push(f.name);continue;}
+    try{
+      const dataUrl=await fileToAudioDataURL(f);
+      data.seTracks.push({id:"se_"+Date.now()+"_"+Math.random().toString(16).slice(2),name:f.name||("SE "+(data.seTracks.length+1)),type:guessAudioMime(f.name,f.type),data:dataUrl,size:f.size||0});
+      added++;
+    }catch(e){
+      console.error(e);
+      failed.push(f.name||"名称不明");
+    }
+  }
+  const saved=saveData();
+  renderSeList();renderSeControls();renderAdminPuzzles();input.value="";
+  let msg=added?`SEを${added}件追加しました。`:"SEは追加されませんでした。";
+  if(skipped.length)msg+="\n音声以外として読み飛ばし: "+skipped.join(" / ");
+  if(failed.length)msg+="\n読み込み失敗: "+failed.join(" / ");
+  if(!saved&&added){msg+="\n\n注意：iPhone/Safariの保存容量を超えたため、自動保存はできていません。ただし今の画面上には追加済みです。消す前に『データを書き出す』でJSON保存してください。";}
+  setMediaStatus(msg.replace(/\n/g,"<br>"));
+  alert(msg);
+}
+function testBgm(id){setBgmById(id)}
+function fileToAudioDataURL(file){return new Promise((res,rej)=>{let r=new FileReader();r.onload=()=>{let result=String(r.result||"");const mime=guessAudioMime(file.name,file.type);result=result.replace(/^data:[^;]*;/,"data:"+mime+";");res(result)};r.onerror=rej;r.readAsDataURL(file)})}
+function fileToDataURL(file){return new Promise((res,rej)=>{let r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+function clearBgm(){data.bgmTracks=[...BUILTIN_BGM];data.puzzles=(data.puzzles||[]).map(p=>({...p,bgmId:"",hotspots:(p.hotspots||[]).map(h=>({...h,bgmId:""}))}));saveData();renderBgmList();renderAdminPuzzles()}
+function exportData(){let box=document.getElementById("exportBox");box.textContent=JSON.stringify(storageData(),null,2);box.classList.remove("hidden")}
+function importData(){try{let obj=JSON.parse(document.getElementById("importBox").value);if(!obj.puzzles)throw new Error("puzzlesがありません");data=migrateData(obj);saveData();alert("読み込みました");showAdminEditor();init();syncRemoteAssets(false)}catch(e){alert("読み込み失敗: "+e.message)}}
+function resetData(){if(confirm("初期データに戻しますか？")){data=migrateData(JSON.parse(JSON.stringify(DEFAULT_DATA)));saveData();showAdminEditor();init()}}
+init();
+syncRemoteAssets(false);
+</script>
+</body>
+</html>
