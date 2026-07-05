@@ -264,7 +264,6 @@ function postSettingsToGas(showAlert){
     const postUrl=url+(url.includes("?")?"&":"?")+"action=saveProject";
     fetch(postUrl,{
       method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
       body:JSON.stringify({project:payload}),
       mode:"no-cors"
     }).then(()=>{
@@ -272,7 +271,7 @@ function postSettingsToGas(showAlert){
       setTimeout(()=>verifyPostedSettings(url,payload,showAlert),1200);
     }).catch(e=>{
       console.error(e);
-      if(showAlert)alert("設定のDrive送信に失敗しました（通信エラー）。");
+      if(showAlert)alert("設定のDrive送信に失敗しました（通信エラー: "+(e&&e.message?e.message:e)+"）。");
       setMediaStatus("設定のDrive送信に失敗しました。");
     });
   }catch(e){console.error(e);if(showAlert)alert("設定のDrive送信に失敗しました。");setMediaStatus("設定のDrive送信に失敗しました。");}
