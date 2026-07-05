@@ -118,7 +118,7 @@ pre.export{white-space:pre-wrap;word-break:break-word;background:#050505;border:
 <label>制限時間（分）</label><input id="adminMinutes" type="number" min="1"><label>合言葉</label><input id="adminCodeword"><label>管理画面パスワード</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="管理画面を開く時のパスワード"><div class="notice small">管理・編集を開くたびに、このパスワード入力が必要になります。初期パスワードは OTAKU です。</div>
 <label>解読後の機密文書（合言葉は {{codeword}}）</label><textarea id="adminPlainDoc"></textarea>
 <label>画像同期スクリプトURL（Google Apps Script）</label><input id="assetSyncUrl" placeholder="https://script.google.com/macros/s/.../exec">
-<div class="notice small">ここにGASのWebアプリURLを入れると、画像やBGM/SE以外の全設定（タイトル・問題文・答え・ヒント・タップ地点など）をDriveへ送信し、他端末でも同じ内容を読み込めます。BGMとSEの設定は端末ごとに個別のままです。</div>
+<div class="notice small">ここにGASのWebアプリURLを入れると、画像やBGM/SE以外の全設定（タイトル・問題文・答え・ヒント・タップ地点など）をDriveへ送信し、他端末でも同じ内容を読み込めます。BGMとSEの設定は端末ごとに個別のままです。<br>画像は、GitHubリポジトリの「images」フォルダにPNG/JPGを直接アップロードして、各画像欄の「GitHubにアップロード済みの画像を使う」欄にファイル名（例: images/saigai.png）を入力する方法でも指定できます。この方法なら、Drive同期をしなくてもどの端末・どの購入者のサイトでも同じ画像がそのまま表示されます。</div>
 <label><input id="autoUploadImages" type="checkbox"> 画像追加時にDriveへアップロードする</label>
 <label><input id="autoUploadSettings" type="checkbox"> 「保存する」を押した時に設定もDriveへアップロードする</label>
 <div class="admin-tools"><button class="secondary" onclick="saveAssetSyncSettings()">画像同期設定を保存</button><button class="secondary" onclick="syncRemoteAssets(true)">アップ済み画像を反映</button></div>
@@ -164,12 +164,12 @@ const BUILTIN_BGM=[{"id":"builtin_bgm_01","name":"maou_bgm_8bit01.mp3","type":"a
 const BUILTIN_SE=[{"id":"builtin_se_01","name":"maou_se_effect06.mp3","type":"audio/mpeg","data":"se/maou_se_effect06.mp3","size":102312,"builtin":true,"external":true},{"id":"builtin_se_02","name":"maou_se_effect08.mp3","type":"audio/mpeg","data":"se/maou_se_effect08.mp3","size":174870,"builtin":true,"external":true},{"id":"builtin_se_03","name":"maou_se_effect09.mp3","type":"audio/mpeg","data":"se/maou_se_effect09.mp3","size":178524,"builtin":true,"external":true},{"id":"builtin_se_04","name":"maou_se_effect10.mp3","type":"audio/mpeg","data":"se/maou_se_effect10.mp3","size":182700,"builtin":true,"external":true},{"id":"builtin_se_05","name":"maou_se_effect11.mp3","type":"audio/mpeg","data":"se/maou_se_effect11.mp3","size":92916,"builtin":true,"external":true},{"id":"builtin_se_06","name":"maou_se_system01.mp3","type":"audio/mpeg","data":"se/maou_se_system01.mp3","size":19836,"builtin":true,"external":true},{"id":"builtin_se_07","name":"maou_se_system02.mp3","type":"audio/mpeg","data":"se/maou_se_system02.mp3","size":23490,"builtin":true,"external":true},{"id":"builtin_se_08","name":"maou_se_system03.mp3","type":"audio/mpeg","data":"se/maou_se_system03.mp3","size":19314,"builtin":true,"external":true},{"id":"builtin_se_09","name":"maou_se_system04.mp3","type":"audio/mpeg","data":"se/maou_se_system04.mp3","size":15660,"builtin":true,"external":true},{"id":"builtin_se_10","name":"maou_se_system05.mp3","type":"audio/mpeg","data":"se/maou_se_system05.mp3","size":13572,"builtin":true,"external":true},{"id":"builtin_se_11","name":"maou_se_system10.mp3","type":"audio/mpeg","data":"se/maou_se_system10.mp3","size":9918,"builtin":true,"external":true},{"id":"builtin_se_12","name":"maou_se_system13.mp3","type":"audio/mpeg","data":"se/maou_se_system13.mp3","size":9396,"builtin":true,"external":true},{"id":"builtin_se_13","name":"maou_se_system16.mp3","type":"audio/mpeg","data":"se/maou_se_system16.mp3","size":9396,"builtin":true,"external":true},{"id":"builtin_se_14","name":"maou_se_system18.mp3","type":"audio/mpeg","data":"se/maou_se_system18.mp3","size":5742,"builtin":true,"external":true},{"id":"builtin_se_15","name":"maou_se_system24.mp3","type":"audio/mpeg","data":"se/maou_se_system24.mp3","size":6786,"builtin":true,"external":true},{"id":"builtin_se_16","name":"maou_se_system25.mp3","type":"audio/mpeg","data":"se/maou_se_system25.mp3","size":5742,"builtin":true,"external":true}];
 const DEFAULT_DATA={
 title:"ギルドの密書",minutes:60,codeword:"おたく場",adminPassword:"OTAKU",
-intro:"ギルド宛に、差出人不明の機密文書が届きました。\\n4つの試練を突破し、最後の合言葉を解読してください。",
-plainDoc:"━━━━━━━━━━━━━━\\n\\nギルド宛 機密文書\\n\\nこの文書を解読した者は、\\nギルドの試練を突破した者と認める。\\n\\n合言葉\\n\\n『{{codeword}}』\\n\\nこの画面を\\nギルドマスターへ提示せよ。\\n\\n━━━━━━━━━━━━━━",
+intro:"ギルド宛に、差出人不明の機密文書が届きました。\n4つの試練を突破し、最後の合言葉を解読してください。",
+plainDoc:"━━━━━━━━━━━━━━\n\nギルド宛 機密文書\n\nこの文書を解読した者は、\nギルドの試練を突破した者と認める。\n\n合言葉\n\n『{{codeword}}』\n\nこの画面を\nギルドマスターへ提示せよ。\n\n━━━━━━━━━━━━━━",
 assetSyncUrl:"",autoUploadImages:false,autoUploadSettings:false,docImages:{"0":"","25":"","50":"","75":"","100":""},bgmTracks:[],seTracks:[],eventSe:{tap:"builtin_se_01",correct:"builtin_se_04",wrong:"builtin_se_03",analysis:"builtin_se_13",clear:"builtin_se_12"},
 puzzles:[samplePuzzle(1),samplePuzzle(2),samplePuzzle(3),samplePuzzle(4)]
 };
-function samplePuzzle(n){return{title:["第1問 はじめての依頼","第2問 解散したパーティーの伝言","第3問 紛れ込んだ偽物","第4問 最深部の扉"][n-1]||`第${n}問`,difficulty:["かんたん","ふつう","むずい","めちゃむず"][Math.min(n-1,3)],body:"問題文をここに入力。\\n画像タップで切り替えたい場合は、画像とタップ地点を管理画面で設定。",image:"",answers:["答え"],hints:["見る場所を変えてみよう。"],clearTitle:`第${n}封印解除`,clearText:"機密文書の解析が進行しました。",wrongTapMessage:"違うようだ…",bgmId:"",hotspots:[]}}
+function samplePuzzle(n){return{title:["第1問 はじめての依頼","第2問 解散したパーティーの伝言","第3問 紛れ込んだ偽物","第4問 最深部の扉"][n-1]||`第${n}問`,difficulty:["かんたん","ふつう","むずい","めちゃむず"][Math.min(n-1,3)],body:"問題文をここに入力。\n画像タップで切り替えたい場合は、画像とタップ地点を管理画面で設定。",image:"",answers:["答え"],hints:["見る場所を変えてみよう。"],clearTitle:`第${n}封印解除`,clearText:"機密文書の解析が進行しました。",wrongTapMessage:"違うようだ…",bgmId:"",hotspots:[]}}
 let data=loadData(),current=0,hintCount=0,imgIndex=0,timerId=null,totalTime=data.minutes*60,left=totalTime,certNo="",playlist=[];
 const REMOTE_IMAGES={};
 function loadData(){try{let raw=localStorage.getItem(STORAGE_KEY);if(raw)return migrateData(JSON.parse(raw))}catch(e){}return migrateData(JSON.parse(JSON.stringify(DEFAULT_DATA)))}
@@ -257,15 +257,41 @@ function stripAudioForSync_(obj){
 function postSettingsToGas(showAlert){
   const url=(data.assetSyncUrl||"").trim();
   if(!url){if(showAlert)alert("先に画像同期スクリプトURLを入れて保存してください。");return;}
+  const payload=stripAudioForSync_(data);
   try{
-    const payload=stripAudioForSync_(data);
     const fd=new FormData();
     fd.append("action","uploadSettings");fd.append("data",JSON.stringify(payload));
     fetch(url,{method:"POST",body:fd,mode:"no-cors"}).then(()=>{
-      setMediaStatus("設定をDriveへ送信しました。別端末では「アップ済み設定を反映」で読み込めます。");
-      if(showAlert)alert("設定をアップロードしました。");
+      setMediaStatus("設定を送信しました。反映を確認しています…");
+      setTimeout(()=>verifyPostedSettings(url,payload,showAlert),1200);
+    }).catch(e=>{
+      console.error(e);
+      if(showAlert)alert("設定のDrive送信に失敗しました（通信エラー）。");
+      setMediaStatus("設定のDrive送信に失敗しました。");
     });
   }catch(e){console.error(e);if(showAlert)alert("設定のDrive送信に失敗しました。");setMediaStatus("設定のDrive送信に失敗しました。");}
+}
+function verifyPostedSettings(url,sentPayload,showAlert){
+  const cb="guildVerifyCb_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+  window[cb]=payload=>{
+    try{
+      const ok=!!(payload&&payload.ok&&payload.settings&&payload.settings.title===sentPayload.title&&JSON.stringify(payload.settings.puzzles||[])===JSON.stringify(sentPayload.puzzles||[]));
+      if(ok){
+        setMediaStatus("設定をDriveへ送信し、反映を確認しました。別端末では「アップ済み設定を反映」で読み込めます。");
+        if(showAlert)alert("設定をアップロードし、Drive側での反映を確認しました。");
+      }else{
+        setMediaStatus("設定を送信しましたが、Drive側で反映されたことを確認できませんでした。データ量が大きすぎる可能性があります（問題画像をアップロード方式のまま設定に含めていないかご確認ください。GitHubの画像ファイル名指定に切り替えるとデータ量が小さくなります）。");
+        if(showAlert)alert("送信しましたが、反映を確認できませんでした。設定の中に大きな画像データが含まれていると失敗しやすいです。画像は「GitHubにアップロード済みの画像を使う」欄でのファイル名指定に切り替えることをおすすめします。");
+      }
+    }finally{
+      delete window[cb];
+      if(script&&script.parentNode)script.parentNode.removeChild(script);
+    }
+  };
+  const script=document.createElement("script");
+  script.onerror=()=>{delete window[cb];setMediaStatus("反映確認の取得に失敗しました。");if(showAlert)alert("反映確認の取得に失敗しました。GASの公開設定をご確認ください。");};
+  script.src=url+(url.includes("?")?"&":"?")+"action=settings&callback="+encodeURIComponent(cb)+"&t="+Date.now();
+  document.body.appendChild(script);
 }
 function pullSettingsFromGas(showAlert){
   const url=(data.assetSyncUrl||"").trim();
@@ -300,6 +326,31 @@ function pullSettingsFromGas(showAlert){
   script.onerror=()=>{delete window[cb];if(showAlert)alert("設定の取得に失敗しました。GASの公開設定を確認してください。");};
   script.src=url+(url.includes("?")?"&":"?")+"action=settings&callback="+encodeURIComponent(cb)+"&t="+Date.now();
   document.body.appendChild(script);
+}
+function githubPathRow(fieldId,currentVal){
+  const isPath=currentVal&&!String(currentVal).startsWith("data:")&&!isGasRef(currentVal);
+  return `<div class="file-note" style="margin-top:8px">GitHubにアップロード済みの画像を使う場合は、ファイル名を入力（例: images/saigai.png）</div><input type="text" id="${fieldId}" placeholder="images/example.png" value="${isPath?esc(currentVal):''}">`;
+}
+function applyGithubPath(kind,i,j){
+  let pathInputId;
+  if(kind==="puzzle")pathInputId=`gh_p_image_${i}`;
+  else if(kind==="hotspot")pathInputId=`gh_hs_img_${i}_${j}`;
+  else if(kind==="doc")pathInputId=`gh_doc_${i}`;
+  const input=document.getElementById(pathInputId);
+  if(!input)return;
+  const v=input.value.trim();
+  if(!v){alert("ファイル名を入力してください（例: images/example.png）");return;}
+  saveAdminNoAlert();
+  if(kind==="puzzle"){
+    if(data.puzzles[i])data.puzzles[i].image=v;
+  }else if(kind==="hotspot"){
+    if(data.puzzles[i]&&data.puzzles[i].hotspots[j])data.puzzles[i].hotspots[j].toImage=v;
+  }else if(kind==="doc"){
+    data.docImages=data.docImages||{};
+    data.docImages[i]=v;
+  }
+  saveData();
+  if(kind==="doc")renderDocImageEditors();else renderAdminPuzzles();
 }
 function saveAssetSyncSettings(){
   data.assetSyncUrl=(document.getElementById("assetSyncUrl")&&document.getElementById("assetSyncUrl").value.trim())||"";
@@ -435,7 +486,7 @@ function renderAdminPuzzles(){
     <label>難易度</label><input id="p_diff_${i}" value="${esc(p.difficulty||"")}">
     <label>この問題のBGM</label><select id="p_bgm_${i}" class="inline-select">${bgmOptions(p.bgmId||"")}</select>
     <label>外れタップ時メッセージ</label><input id="p_wrong_${i}" value="${esc(p.wrongTapMessage||"違うようだ…")}">
-    <label>問題画像</label><div class="image-control"><input type="hidden" id="p_image_${i}" value="${esc(p.image||"")}"><div class="file-note">画像追加ボタンから選択。URL入力は使いません。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadPuzzleImage(${i},this)"></label><img id="p_preview_${i}" class="image-preview ${assetSrc(p.image)?"":"hidden"}" src="${esc(assetSrc(p.image)||"")}"><button type="button" class="secondary" onclick="removePuzzleImage(${i})">画像を削除</button></div>
+    <label>問題画像</label><div class="image-control"><input type="hidden" id="p_image_${i}" value="${esc(p.image||"")}"><div class="file-note">画像追加ボタンから選択。またはGitHubにアップロード済みのファイル名を下欄で指定できます。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadPuzzleImage(${i},this)"></label><img id="p_preview_${i}" class="image-preview ${assetSrc(p.image)?"":"hidden"}" src="${esc(assetSrc(p.image)||"")}"><button type="button" class="secondary" onclick="removePuzzleImage(${i})">画像を削除</button>${githubPathRow('gh_p_image_'+i,p.image)}<button type="button" class="secondary mini-btn" style="width:auto;margin-top:6px" onclick="applyGithubPath('puzzle',${i})">このファイル名を使う</button></div>
     <label>問題文</label><textarea id="p_body_${i}">${esc(p.body||"")}</textarea>
     <label>答え（改行で複数）</label><textarea id="p_answers_${i}">${esc((p.answers||[]).join("\n"))}</textarea>
     <label>ヒント（改行で複数、下のボタンでも追加できます）</label><textarea id="p_hints_${i}">${esc((p.hints||[]).join("\n"))}</textarea><button type="button" class="secondary mini-btn" style="width:auto;margin-top:8px" onclick="addHintLine(${i})">＋ヒントを1つ追加</button>
@@ -480,7 +531,7 @@ function hotspotEditor(i,j,h){
   return `<div class="admin-hotspot" id="hs_card_${i}_${j}" onclick="selectHotspot(${i},${j})"><strong>タップ地点</strong>
   <input type="hidden" id="hs_from_${i}_${j}" value="${h.fromIndex||0}"><input type="hidden" id="hs_x_${i}_${j}" value="${h.x||50}"><input type="hidden" id="hs_y_${i}_${j}" value="${h.y||50}">
   <label>判定サイズ</label><div class="range-row"><input id="hs_size_${i}_${j}" type="range" min="6" max="45" value="${h.size||14}" oninput="document.getElementById('hs_size_label_${i}_${j}').textContent=this.value+'%';drawAdminMarkers(${i})"><span id="hs_size_label_${i}_${j}">${h.size||14}%</span></div>
-  <label>押した後の画像（次の画像として登録されます）</label><div class="image-control"><input type="hidden" id="hs_img_${i}_${j}" value="${esc(h.toImage||"")}"><div class="file-note">画像追加ボタンから選択。URL入力は使いません。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadHotspotImage(${i},${j},this)"></label><img id="hs_preview_${i}_${j}" class="image-preview ${assetSrc(h.toImage)?"":"hidden"}" src="${esc(assetSrc(h.toImage)||"")}"><button type="button" class="secondary" onclick="removeHotspotImage(${i},${j})">画像を削除</button></div>
+  <label>押した後の画像（次の画像として登録されます）</label><div class="image-control"><input type="hidden" id="hs_img_${i}_${j}" value="${esc(h.toImage||"")}"><div class="file-note">画像追加ボタンから選択。またはGitHubにアップロード済みのファイル名を下欄で指定できます。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadHotspotImage(${i},${j},this)"></label><img id="hs_preview_${i}_${j}" class="image-preview ${assetSrc(h.toImage)?"":"hidden"}" src="${esc(assetSrc(h.toImage)||"")}"><button type="button" class="secondary" onclick="removeHotspotImage(${i},${j})">画像を削除</button>${githubPathRow('gh_hs_img_'+i+'_'+j,h.toImage)}<button type="button" class="secondary mini-btn" style="width:auto;margin-top:6px" onclick="event.stopPropagation();applyGithubPath('hotspot',${i},${j})">このファイル名を使う</button></div>
   <label>切替後の画像番号</label><select id="hs_to_${i}_${j}">${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${(h.toIndex||((h.fromIndex||0)+1))===n?'selected':''}>画像${n}</option>`).join('')}</select>
   <label>メッセージ</label><input id="hs_msg_${i}_${j}" value="${esc(h.message||"")}">
   <label>このタップだけのSE</label><select id="hs_se_${i}_${j}">${seOptions(h.seId||"")}</select>
@@ -543,7 +594,7 @@ function renderDocImageEditors(){
   if(!box)return;
   data.docImages=data.docImages||{"0":"","25":"","50":"","75":"","100":""};
   const labels={"0":"解析率0%","25":"解析率25%","50":"解析率50%","75":"解析率75%","100":"解析率100%"};
-  box.innerHTML=["0","25","50","75","100"].map(k=>`<div class="image-control"><strong>${labels[k]}</strong><div class="file-note">写真またはファイルから選択できます。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadDocImage('${k}',this)"></label><img id="doc_preview_${k}" class="image-preview ${assetSrc(data.docImages[k])?"":"hidden"}" src="${esc(assetSrc(data.docImages[k])||"")}"><button type="button" class="secondary" onclick="removeDocImage('${k}')">画像を削除</button></div>`).join("");
+  box.innerHTML=["0","25","50","75","100"].map(k=>`<div class="image-control"><strong>${labels[k]}</strong><div class="file-note">写真またはファイルから選択、またはGitHubにアップロード済みのファイル名を下欄で指定できます。</div><label class="file-picker">画像を追加<input type="file" accept="image/*" onchange="uploadDocImage('${k}',this)"></label><img id="doc_preview_${k}" class="image-preview ${assetSrc(data.docImages[k])?"":"hidden"}" src="${esc(assetSrc(data.docImages[k])||"")}"><button type="button" class="secondary" onclick="removeDocImage('${k}')">画像を削除</button>${githubPathRow('gh_doc_'+k,data.docImages[k])}<button type="button" class="secondary mini-btn" style="width:auto;margin-top:6px" onclick="applyGithubPath('doc','${k}')">このファイル名を使う</button></div>`).join("");
 }
 async function uploadDocImage(k,input){
   const file=input.files&&input.files[0];
